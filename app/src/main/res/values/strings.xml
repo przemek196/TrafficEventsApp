@@ -1,0 +1,32 @@
+<resources>
+    <string name="app_name">Traffic Events App</string>
+    <string name="email_text_view">Adres e-mail</string>
+    <string name="forgotpassword_text_view">Nie pamiętasz hasła?</string>
+    <string name="password">Hasło</string>
+    <string name="register_new_user">Załóż konto</string>
+    <string name="log_in_text">Zaloguj</string>
+    <string name="login">Logowanie</string>
+    <string name="register">Rejestracja</string>
+    <string name="loginSucccesful">Zalogowano pomyślnie</string>
+    <string name="registerSucccesful">Konto zostało zarejestrowane. Sprawdź adres e-mail w celu weryfikacji</string>
+    <string name="loginFailed">Logowanie nie powiodło się</string>
+    <string name="userExist">Adres e-mail jest już używany przez innego użytkownika</string>
+    <string name="emailNotVeryfied">Podany adres e-mail został nie zweryfikowany. Zweryfiuj adres e-mail</string>
+    <string name="confirm">Zatwierdź</string>
+    <string name="next">Dalej</string>
+    <string name="pleaseEnterEmail">Proszę podaj e-mail!</string>
+    <string name="pleaseEnterPassword">Proszę podaj hasło!</string>
+    <string name="backToLogin">Wróć do logowania</string>
+    <string name="userName">Nazwa użytkownika</string>
+    <string name="registerMessage">Aby móc korzystać z aplikacji należy posiadać konto. Wypełnij poniższe dane i zarejestruj się.</string>
+    <string name="verifyEmail">Potwierdź adres e-mail a następnie zaloguj się.</string>
+    <string name="weakPassword">Hasło musi zawierać minimum 6 znaków.</string>
+    <string name="invalidEmail">E-mail nie poprawny lub w użyciu. Podaj poprawny adres e-mail.</string>
+    <string name="userAlreadyRegistered">Podany użytkownik jest już zarejestrowany.</string>
+    <string name="credentialsInvalid">Hasło jest niepoprawne.</string>
+    <string name="sendAgainEmailVeryfication">Podany adres nie został zweryfikowany. Czy wysłać ponownie wiadomość z linkiem do weryfikacji na adres:</string>
+    <string name="checkEmail">Wiadomość wysłana. Sprawdz e-mail.</string>
+    <string name="title_activity_splash">SplashActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+</resources>
