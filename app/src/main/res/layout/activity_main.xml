@@ -8,4 +8,14 @@
     android:background="#353434">
 
 
+    <ImageView
+        android:id="@+id/logo_icon_startup"
+        android:layout_width="182dp"
+        android:layout_height="450dp"
+        android:contentDescription="@string/logo_icon"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/ic_tema" />
 </androidx.constraintlayout.widget.ConstraintLayout>
