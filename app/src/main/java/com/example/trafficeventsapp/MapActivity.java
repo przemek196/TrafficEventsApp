@@ -15,20 +15,21 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.location.LocationListener;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.UiSettings;
-import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
@@ -37,28 +38,33 @@ import com.karumi.dexter.listener.PermissionGrantedResponse;
 import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.single.PermissionListener;
 
+import java.io.IOException;
+import java.io.InputStream;
 
-public class MapActivity extends AppCompatActivity implements OnMapReadyCallback, ActivityCompat.OnRequestPermissionsResultCallback, LocationListener {
 
-    SupportMapFragment mapFragment;
-    GoogleMap mGoogleMap;
-    FusedLocationProviderClient fusedLocationProviderClient;
+public class MapActivity extends AppCompatActivity implements OnMapReadyCallback, ActivityCompat.OnRequestPermissionsResultCallback, LocationListener, View.OnClickListener {
+
+    private SupportMapFragment mapFragment;
+    private GoogleMap mGoogleMap;
     private LocationManager locationManager;
     private LocationListener locationListener;
-    private final static int REQUEST_CODE = 100;
+    View bottomSheet;
+    private LinearLayout lin_lay_menu;
+    private ImageButton btnAddMaker;
+    // private ImageButton btn_speed_control_maker;
+    //private ImageButton btn_traffic_accident_maker;
+    //private ImageButton btn_police_voiture_maker;
+    private boolean menu_visibility = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
-
+        findViews();
         checkMyPermission();
 
-        mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.maps);
         mapFragment.getMapAsync(this);
-
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-
         locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
@@ -67,6 +73,75 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 mGoogleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
             }
         };
+    }
+
+    private void findViews() {
+        mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.maps);
+        lin_lay_menu = (LinearLayout) findViewById(R.id.linear_layout_menu);
+        bottomSheet = findViewById(R.id.bottom_sheet);
+
+        btnAddMaker = (ImageButton) findViewById(R.id.buttonAddMaker);
+        ImageButton btn_speed_control_maker = (ImageButton) findViewById(R.id.btn_speed_control_maker);
+        ImageButton btn_traffic_accident_maker = (ImageButton) findViewById(R.id.btn_traffic_accident_maker);
+        ImageButton btn_police_voiture_maker = (ImageButton) findViewById(R.id.btn_police_voituer_maker);
+        btnAddMaker.setOnClickListener(this);
+        btn_speed_control_maker.setOnClickListener(this);
+        btn_traffic_accident_maker.setOnClickListener(this);
+        btn_police_voiture_maker.setOnClickListener(this);
+    }
+
+    @Override
+    public void onClick(View v) {
+
+        switch (v.getId()) {
+            case R.id.buttonAddMaker:
+                show_makers_menu();
+                break;
+            case R.id.btn_speed_control_maker:
+                addMakerOnMap(v.getId());
+                break;
+            case R.id.btn_traffic_accident_maker:
+                addMakerOnMap(v.getId());
+                break;
+            case R.id.btn_police_voituer_maker:
+                addMakerOnMap(v.getId());
+                break;
+            default:
+                break;
+        }
+
+
+    }
+
+    private void show_makers_menu() {
+        if (lin_lay_menu.getVisibility() == View.GONE) {
+            Animation showAnimation = AnimationUtils.loadAnimation(this, R.anim.fade_in_animation);
+            lin_lay_menu.startAnimation(showAnimation);
+            lin_lay_menu.setVisibility(View.VISIBLE);
+
+        } else {
+            lin_lay_menu.setVisibility(View.GONE);
+        }
+    }
+
+    private void addMakerOnMap(int id) {
+
+
+
+      /*  LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        String provider = locationManager.getBestProvider(criteria, true);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        Location location = locationManager.getLastKnownLocation(provider);
+        if (location != null) {
+            double latitude = location.getLatitude();
+            double longitude = location.getLongitude();
+            LatLng myLocation = new LatLng(latitude, longitude);
+            mGoogleMap.addMarker(new MarkerOptions().position(myLocation).title("My Location"));
+        }*/
+
     }
 
     private void checkMyPermission() {
@@ -83,7 +158,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 Uri uri = Uri.fromParts("package", getPackageName(), "");
                 intent.setData(uri);
                 startActivity(intent);
-
             }
 
             @Override
@@ -98,7 +172,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mGoogleMap = googleMap;
-        mGoogleMap.clear();
         enableMyLocation();
         UiSettings uiSettings = mGoogleMap.getUiSettings();
         uiSettings.setScrollGesturesEnabled(false);
@@ -106,6 +179,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         uiSettings.setMyLocationButtonEnabled(false);
 
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+        //lastKnownLocation null where function didn't find a last known location
         Location lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
         LatLng latLng = new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude());
         mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
@@ -115,8 +189,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     @SuppressLint("MissingPermission")
     private void enableMyLocation() {
-        // [START maps_check_location_permission]
-        // 1. Check if permissions are granted, if so, enable the my location layer
+
+        //Check if permissions are granted
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED
                 || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -124,10 +198,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             mGoogleMap.setMyLocationEnabled(true);
             return;
         }
-
-        // 2. Otherwise, request location permissions from the user.
-        // PermissionUtils.requestLocationPermissions(this, LOCATION_PERMISSION_REQUEST_CODE, true);
-        // [END maps_check_location_permission]
     }
 
     @Override
@@ -149,6 +219,20 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     @Override
     public void onLocationChanged(Location location) {
+    }
 
+    private String loadJSONFromAsset(String fileName) {
+        String json = null;
+        try {
+            InputStream is = getAssets().open(fileName);
+            int size = is.available();
+            byte[] buffer = new byte[size];
+            is.read(buffer);
+            is.close();
+            json = new String(buffer, "UTF-8");
+        } catch (IOException ex) {
+
+        }
+        return json;
     }
 }

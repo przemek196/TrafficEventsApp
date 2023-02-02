@@ -1,22 +1,74 @@
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".MapActivity">
+    android:layout_height="match_parent">
 
-
-    <androidx.fragment.app.FragmentContainerView
+    <fragment
         android:id="@+id/maps"
-        android:name="com.google.android.gms.maps.SupportMapFragment"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        ></androidx.fragment.app.FragmentContainerView>
+        class="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="30dp"
+        android:orientation="vertical">
+
+
+        <LinearLayout
+            android:id="@+id/linear_layout_menu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+
+            <ImageButton
+                android:id="@+id/btn_speed_control_maker"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_marginHorizontal="10dp"
+                android:background="@drawable/ic_speed_control"></ImageButton>
+
+            <ImageButton
+                android:id="@+id/btn_traffic_accident_maker"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_marginHorizontal="10dp"
+                android:background="@drawable/ic_car_accident"></ImageButton>
+
+            <ImageButton
+                android:id="@+id/btn_police_voituer_maker"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_marginHorizontal="10dp"
+                android:background="@drawable/ic_voiture_the_police"></ImageButton>
+
+
+        </LinearLayout>
+
+        <View
+            android:id="@+id/bottom_sheet"
+            android:layout_width="200dp"
+            android:layout_height="30dp"
+            android:background="#ffffff"
+            android:elevation="4dp"
+            android:visibility="gone" />
+
+
+        <ImageButton
+            android:id="@+id/buttonAddMaker"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/add_ic" />
+
+    </LinearLayout>
+
+
+</RelativeLayout>
