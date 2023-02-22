@@ -11,15 +11,20 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
 import android.location.LocationListener;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.provider.Settings;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.Toast;
@@ -30,7 +35,12 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.UiSettings;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionDeniedResponse;
@@ -51,10 +61,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     View bottomSheet;
     private LinearLayout lin_lay_menu;
     private ImageButton btnAddMaker;
+    private Button logOut;
     // private ImageButton btn_speed_control_maker;
     //private ImageButton btn_traffic_accident_maker;
     //private ImageButton btn_police_voiture_maker;
     private boolean menu_visibility = false;
+    private int minBlckAddMaker = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,6 +96,19 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         ImageButton btn_speed_control_maker = (ImageButton) findViewById(R.id.btn_speed_control_maker);
         ImageButton btn_traffic_accident_maker = (ImageButton) findViewById(R.id.btn_traffic_accident_maker);
         ImageButton btn_police_voiture_maker = (ImageButton) findViewById(R.id.btn_police_voituer_maker);
+
+
+        logOut = (Button) findViewById(R.id.btnLogOut);
+        logOut.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FirebaseAuth mAuth = FirebaseAuth.getInstance();
+                mAuth.signOut();
+                startActivity(new Intent(MapActivity.this, LoginActivity.class));
+
+            }
+        });
+
         btnAddMaker.setOnClickListener(this);
         btn_speed_control_maker.setOnClickListener(this);
         btn_traffic_accident_maker.setOnClickListener(this);
@@ -92,6 +117,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     @Override
     public void onClick(View v) {
+
+        if (!v.isEnabled())
+            Toast.makeText(getApplicationContext(), "Przycisk jest nieaktywny. Poczekaj 3 minuty", Toast.LENGTH_SHORT).show();
 
         switch (v.getId()) {
             case R.id.buttonAddMaker:
@@ -110,7 +138,18 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 break;
         }
 
+        if (v.getId() != R.id.buttonAddMaker) {
+            new CountDownTimer(minBlckAddMaker * 60 * 1000, 1000) {
+                public void onTick(long millisUntilFinished) {
+                }
 
+                public void onFinish() {
+                    //called after minBlckAddMaker minutes
+                    v.setEnabled(true);
+                }
+            }.start();
+            v.setEnabled(false);
+        }
     }
 
     private void show_makers_menu() {
@@ -126,9 +165,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     private void addMakerOnMap(int id) {
 
-
-
-      /*  LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         Criteria criteria = new Criteria();
         String provider = locationManager.getBestProvider(criteria, true);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -139,9 +176,32 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             double latitude = location.getLatitude();
             double longitude = location.getLongitude();
             LatLng myLocation = new LatLng(latitude, longitude);
-            mGoogleMap.addMarker(new MarkerOptions().position(myLocation).title("My Location"));
-        }*/
+            int ic_red = 5;
 
+            Bitmap imageBitmap = null, resizedBitmap = null;
+            MarkerOptions markerOptions = null;
+            //add makers on map
+            switch (id) {
+                case R.id.btn_speed_control_maker:
+                    imageBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_map_speed);
+                    resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
+                    break;
+                case R.id.btn_traffic_accident_maker:
+                    imageBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_map_crash);
+                    resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
+                    break;
+                case R.id.btn_police_voituer_maker:
+                    imageBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_map_vouiter_police);
+                    resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
+                    break;
+                default:
+                    break;
+            }
+            markerOptions = new MarkerOptions().position(myLocation).icon(BitmapDescriptorFactory.fromBitmap(resizedBitmap)).title(String.valueOf(id));
+            DatabaseClass databaseClass = new DatabaseClass();
+            databaseClass.addMakerToDatabase(markerOptions);
+            mGoogleMap.addMarker(markerOptions);
+        }
     }
 
     private void checkMyPermission() {
@@ -177,14 +237,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         uiSettings.setScrollGesturesEnabled(false);
         uiSettings.setZoomGesturesEnabled(false);
         uiSettings.setMyLocationButtonEnabled(false);
-
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
         //lastKnownLocation null where function didn't find a last known location
         Location lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
         LatLng latLng = new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude());
         mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
         mGoogleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
-
     }
 
     @SuppressLint("MissingPermission")

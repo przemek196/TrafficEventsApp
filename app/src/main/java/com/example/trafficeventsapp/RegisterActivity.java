@@ -23,9 +23,12 @@ import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class RegisterActivity extends AppCompatActivity {
-
     private FirebaseAuth mAuth = FirebaseAuth.getInstance();
     private FirebaseDatabase database = FirebaseDatabase.getInstance();
     private DatabaseReference myRef = database.getReference();
@@ -55,39 +58,50 @@ public class RegisterActivity extends AppCompatActivity {
         String userName = editTextUserName.getText().toString();
         // checkIsFieldsIsFill(email,password,userName);
         progressbar.setVisibility(View.VISIBLE);
-        mAuth.createUserWithEmailAndPassword(email,password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+        mAuth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
             @Override
             public void onComplete(@NonNull Task<AuthResult> task) {
-                if(task.isSuccessful()){
+                if (task.isSuccessful()) {
                     mAuth.getCurrentUser().sendEmailVerification().addOnCompleteListener(new OnCompleteListener<Void>() {
                         @Override
                         public void onComplete(@NonNull Task<Void> task) {
                             finish();
                             Log.e("TAG", "E-mail verification was send.");
+
+                            FirebaseDatabase database = FirebaseDatabase.getInstance("https://traffic-events-app-15a65-default-rtdb.europe-west1.firebasedatabase.app/");
+                            DatabaseReference markersRef = database.getReference("users");
+
+                            Map<String, Object> values = new HashMap<>();
+                            values.put("email", mAuth.getCurrentUser().getEmail());
+                            values.put("usere_name", userName);
+                            markersRef.child(mAuth.getCurrentUser().getUid()).setValue(values);
+
+
                             Toast.makeText(getApplicationContext(), getResources().getString(R.string.verifyEmail), Toast.LENGTH_LONG).show();
                         }
                     });
-                }else{
+                } else {
                     progressbar.setVisibility(View.GONE);
-                    try{
+                    try {
                         throw task.getException();
-                    }catch(FirebaseAuthWeakPasswordException e){
+                    } catch (FirebaseAuthWeakPasswordException e) {
                         Log.w("TAG", "Weak password.");
                         Toast.makeText(getApplicationContext(), getResources().getString(R.string.weakPassword), Toast.LENGTH_LONG).show();
-                    }catch(FirebaseAuthInvalidCredentialsException e){
+                    } catch (FirebaseAuthInvalidCredentialsException e) {
                         Log.e("TAG", "Invalid e-mail or in use.");
                         Toast.makeText(getApplicationContext(), getResources().getString(R.string.invalidEmail), Toast.LENGTH_LONG).show();
-                    }catch(FirebaseAuthUserCollisionException e){
+                    } catch (FirebaseAuthUserCollisionException e) {
                         Log.e("TAG", "User is already registered.");
                         Toast.makeText(getApplicationContext(), getResources().getString(R.string.invalidEmail), Toast.LENGTH_LONG).show();
-                    }catch(Exception e){
-                        Log.e(TAG,e.getMessage());
+                    } catch (Exception e) {
+                        Log.e(TAG, e.getMessage());
                         Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 }
             }
         });
     }
+
     private boolean checkIsFieldsIsFill(String email, String password, String userName) {
         return true;
     }
