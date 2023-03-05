@@ -37,6 +37,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.karumi.dexter.Dexter;
@@ -48,6 +49,7 @@ import com.karumi.dexter.listener.single.PermissionListener;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.UUID;
 
 
 public class MapActivity extends AppCompatActivity implements OnMapReadyCallback, ActivityCompat.OnRequestPermissionsResultCallback, LocationListener, View.OnClickListener {
@@ -65,6 +67,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private Button logOut;
     private boolean menu_visibility = false;
     private int minBlckAddMaker = 1;
+    private double distance = 5000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,18 +77,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         checkMyPermission();
 
         mapFragment.getMapAsync(this);
-        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        locationListener = new LocationListener() {
-            @Override
-            public void onLocationChanged(Location location) {
-                LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-                mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-                mGoogleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
-            }
-        };
-
-        DatabaseClass databaseClass1 = new DatabaseClass(this);
-        databaseClass1.getActiveMarkersFromDataase();
     }
 
     private void findViews() {
@@ -209,11 +200,13 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 default:
                     break;
             }
-            markerOptions = new MarkerOptions().position(myLocation).icon(BitmapDescriptorFactory.fromBitmap(resizedBitmap)).title(String.valueOf(id));
+            markerOptions = new MarkerOptions().position(myLocation).icon(BitmapDescriptorFactory.fromBitmap(resizedBitmap));
+            String idd = UUID.randomUUID().toString();
+            markerOptions.title(idd);
+            Marker marker = mGoogleMap.addMarker(markerOptions);
             DatabaseClass databaseClass = new DatabaseClass(this);
-            databaseClass.addMakerToDatabase(markerOptions);
-           /// databaseClass.getActiveMarkersFromDataase();
-            mGoogleMap.addMarker(markerOptions);
+            databaseClass.addMakerToDatabase(markerOptions, marker,String.valueOf(id));
+
         }
     }
 
@@ -250,12 +243,116 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         uiSettings.setScrollGesturesEnabled(false);
         uiSettings.setZoomGesturesEnabled(false);
         uiSettings.setMyLocationButtonEnabled(false);
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-        //lastKnownLocation null where function didn't find a last known location
-        Location lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        LatLng latLng = new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude());
-        mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-        mGoogleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+
+        displayCurrentLocation();
+        startLocationUpdates();
+
+    }
+
+    private void displayCurrentLocation() {
+        // Sprawdź, czy aplikacja ma uprawnienia do dostępu do lokalizacji.
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            // Uzyskaj odwołanie do LocationManager.
+            LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+
+            // Sprawdź, czy GPS jest włączony.
+            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                // Pobierz ostatnią znaną lokalizację z GPS.
+                Location lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
+                // Jeśli lokalizacja nie jest znana, zarejestruj LocationListener, aby czekać na aktualizacje lokalizacji.
+                if (lastKnownLocation == null) {
+                    LocationListener locationListener = new LocationListener() {
+                        @Override
+                        public void onLocationChanged(Location location) {
+                            // Zaktualizuj kamerę GoogleMap z nową lokalizacją.
+                            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+                            mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+                            mGoogleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+
+                            // Wyłącz LocationListener, gdy lokalizacja zostanie znaleziona.
+                            locationManager.removeUpdates(this);
+                        }
+
+                        @Override
+                        public void onProviderEnabled(String provider) {
+                            // Kod do obsługi włączenia dostawcy lokalizacji.
+                        }
+
+                        @Override
+                        public void onProviderDisabled(String provider) {
+                            // Kod do obsługi wyłączenia dostawcy lokalizacji.
+                        }
+
+                        @Override
+                        public void onStatusChanged(String provider, int status, Bundle extras) {
+                            // Kod do obsługi zmiany statusu dostawcy lokalizacji.
+                        }
+                    };
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+                }
+                // Jeśli lokalizacja jest znana, zaktualizuj kamerę GoogleMap.
+                else {
+                    LatLng latLng = new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude());
+                    mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+                    mGoogleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+                }
+            } else {
+                // Poproś użytkownika o włączenie GPS.
+                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                startActivity(intent);
+            }
+        } else {
+            // Poproś użytkownika o uprawnienia do dostępu do lokalizacji.
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        }
+    }
+
+    private void startLocationUpdates() {
+        // Sprawdź, czy aplikacja ma uprawnienia do dostępu do lokalizacji.
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            // Uzyskaj odwołanie do LocationManager.
+            LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+
+            // Sprawdź, czy GPS jest włączony.
+            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                // Zarejestruj LocationListener do nasłuchiwania na aktualizacje lokalizacji.
+                LocationListener locationListener = new LocationListener() {
+                    @Override
+                    public void onLocationChanged(Location location) {
+                        // Zaktualizuj kamerę GoogleMap z nową lokalizacją.
+                        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+                        mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+                        mGoogleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+
+
+                    }
+
+                    @Override
+                    public void onProviderEnabled(String provider) {
+                        // Kod do obsługi włączenia dostawcy lokalizacji.
+                    }
+
+                    @Override
+                    public void onProviderDisabled(String provider) {
+                        // Kod do obsługi wyłączenia dostawcy lokalizacji.
+                    }
+
+                    @Override
+                    public void onStatusChanged(String provider, int status, Bundle extras) {
+                        // Kod do obsługi zmiany statusu dostawcy lokalizacji.
+                    }
+                };
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+            } else {
+                // Poproś użytkownika o włączenie GPS.
+                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                startActivity(intent);
+            }
+        } else {
+            // Poproś użytkownika o uprawnienia do dostępu do lokalizacji.
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        }
     }
 
     @SuppressLint("MissingPermission")

@@ -26,7 +26,7 @@
         <activity
             android:name=".MapActivity"
             android:exported="false"
-            android:theme="@style/SplashTheme">
+            android:theme="@style/Theme.AppCompat.NoActionBar">
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.Manifest;
+
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 
@@ -23,6 +24,7 @@ public class LocationClass {
 
     public interface OnLocationReceivedListener {
         void onLocationReceived(Location location);
+
         void onLocationError(Exception e);
     }
 
@@ -50,4 +52,46 @@ public class LocationClass {
                     }
                 });
     }
+
+
+
+
+    /*private void updateMap(Location location) {
+        // Usunięcie poprzedniego markera
+        if (mMarker != null) {
+            mMarker.remove();
+        }
+
+        // Dodanie markera dla aktualnej lokalizacji użytkownika
+        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        MarkerOptions markerOptions = new MarkerOptions()
+                .position(latLng)
+                .title("Moja lokalizacja");
+        mMarker = mGoogleMap.addMarker(markerOptions);
+
+        // Pobranie pinezek z bazy danych i wyświetlenie tych, które znajdują się w odległości 5 km od aktualnej lokalizacji użytkownika
+        mValueEventListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                for (DataSnapshot markerSnapshot : dataSnapshot.getChildren()) {
+                    String markerId = markerSnapshot.getKey();
+                    double latitude = markerSnapshot.child("localization").child("latitude").getValue(Double.class);
+                    double longitude = markerSnapshot.child("localization").child("longitude").getValue(Double.class);
+                    LatLng markerLatLng = new LatLng(latitude, longitude);
+                    float distance = location.distanceTo(markerLatLng) / 1000; // Odległość w kilometrach
+                    if (distance <= 5) {
+                        MarkerOptions markerOptions = new MarkerOptions()
+                                .position(markerLatLng)
+                                .title(markerId);
+                        mGoogleMap.addMarker(markerOptions);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {}
+        };
+        mDatabase.addListenerForSingleValueEvent(mValueEventListener);
+    }*/
+
 }
