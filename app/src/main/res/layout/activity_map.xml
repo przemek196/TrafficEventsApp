@@ -4,10 +4,10 @@
     android:layout_height="match_parent">
 
     <fragment
-        android:id="@+id/maps"
-        class="com.google.android.gms.maps.SupportMapFragment"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+    android:id="@+id/maps"
+    class="com.google.android.gms.maps.SupportMapFragment"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
 
     <Button
         android:id="@+id/btnLogOut"
@@ -53,8 +53,6 @@
                 android:layout_height="60dp"
                 android:layout_marginHorizontal="10dp"
                 android:background="@drawable/ic_voiture_the_police"></ImageButton>
-
-
         </LinearLayout>
 
         <View
@@ -71,7 +69,8 @@
             android:layout_width="80dp"
             android:layout_height="80dp"
             android:layout_gravity="center_horizontal"
-            android:background="@drawable/add_ic" />
+            android:background="@drawable/add_ic">
+        </ImageButton>
 
     </LinearLayout>
 

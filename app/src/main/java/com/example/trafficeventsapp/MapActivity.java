@@ -39,8 +39,6 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionDeniedResponse;
@@ -61,10 +59,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     View bottomSheet;
     private LinearLayout lin_lay_menu;
     private ImageButton btnAddMaker;
+    private ImageButton btn_speed_control_maker;
+    private ImageButton btn_traffic_accident_maker;
+    private ImageButton btn_police_voiture_maker;
     private Button logOut;
-    // private ImageButton btn_speed_control_maker;
-    //private ImageButton btn_traffic_accident_maker;
-    //private ImageButton btn_police_voiture_maker;
     private boolean menu_visibility = false;
     private int minBlckAddMaker = 1;
 
@@ -85,6 +83,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 mGoogleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
             }
         };
+
+        DatabaseClass databaseClass1 = new DatabaseClass(this);
+        databaseClass1.getActiveMarkersFromDataase();
     }
 
     private void findViews() {
@@ -93,9 +94,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         bottomSheet = findViewById(R.id.bottom_sheet);
 
         btnAddMaker = (ImageButton) findViewById(R.id.buttonAddMaker);
-        ImageButton btn_speed_control_maker = (ImageButton) findViewById(R.id.btn_speed_control_maker);
-        ImageButton btn_traffic_accident_maker = (ImageButton) findViewById(R.id.btn_traffic_accident_maker);
-        ImageButton btn_police_voiture_maker = (ImageButton) findViewById(R.id.btn_police_voituer_maker);
+        btn_speed_control_maker = (ImageButton) findViewById(R.id.btn_speed_control_maker);
+        btn_traffic_accident_maker = (ImageButton) findViewById(R.id.btn_traffic_accident_maker);
+        btn_police_voiture_maker = (ImageButton) findViewById(R.id.btn_police_voituer_maker);
 
 
         logOut = (Button) findViewById(R.id.btnLogOut);
@@ -139,17 +140,29 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
 
         if (v.getId() != R.id.buttonAddMaker) {
-            new CountDownTimer(minBlckAddMaker * 60 * 1000, 1000) {
+            new CountDownTimer(minBlckAddMaker * 10 * 1000, 1000) {
                 public void onTick(long millisUntilFinished) {
                 }
 
                 public void onFinish() {
                     //called after minBlckAddMaker minutes
-                    v.setEnabled(true);
+                    setButtonsEnabled(true);
+                    lin_lay_menu.setVisibility(View.VISIBLE);
                 }
             }.start();
-            v.setEnabled(false);
+            setButtonsEnabled(false);
+            lin_lay_menu.setVisibility(View.GONE);
+
         }
+    }
+
+    private void setButtonsEnabled(Boolean b) {
+        btn_speed_control_maker.setEnabled(b);
+        btn_traffic_accident_maker.setEnabled(b);
+        btn_police_voiture_maker.setEnabled(b);
+        btnAddMaker.setEnabled(b);
+
+
     }
 
     private void show_makers_menu() {
@@ -164,7 +177,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
 
     private void addMakerOnMap(int id) {
-
         LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         Criteria criteria = new Criteria();
         String provider = locationManager.getBestProvider(criteria, true);
@@ -198,8 +210,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     break;
             }
             markerOptions = new MarkerOptions().position(myLocation).icon(BitmapDescriptorFactory.fromBitmap(resizedBitmap)).title(String.valueOf(id));
-            DatabaseClass databaseClass = new DatabaseClass();
+            DatabaseClass databaseClass = new DatabaseClass(this);
             databaseClass.addMakerToDatabase(markerOptions);
+           /// databaseClass.getActiveMarkersFromDataase();
             mGoogleMap.addMarker(markerOptions);
         }
     }
