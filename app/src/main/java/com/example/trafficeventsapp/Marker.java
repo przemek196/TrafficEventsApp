@@ -4,9 +4,13 @@ public class Marker {
 
     String eventID;
     String creator;
+    String creatorName;
     long creationTime;
     long expirationTime;
     int refreshCount;
+
+    public Marker() {
+    }
 
     public Marker(String eventID, String creator, long creationTime, long expirationTime, int refreshCount) {
         this.eventID = eventID;
@@ -54,5 +58,13 @@ public class Marker {
 
     public void setRefreshCount(int refreshCount) {
         this.refreshCount = refreshCount;
+    }
+
+    public String getCreatorName() {
+        return creatorName;
+    }
+
+    public void setCreatorName(String creatorName) {
+        this.creatorName = creatorName;
     }
 }

@@ -30,4 +30,7 @@
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
     <string name="logo_icon">Logo Icon</string>
+    <string name="speed_cntrl">Kontrola prędkości</string>
+    <string name="traff_acc">Zdarzenie drogowe</string>
+    <string name="polic_car">Radiowóz policyjny</string>
 </resources>
