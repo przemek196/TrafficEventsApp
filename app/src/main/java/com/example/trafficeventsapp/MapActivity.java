@@ -4,6 +4,7 @@ package com.example.trafficeventsapp;
 import static android.content.ContentValues.TAG;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -11,8 +12,10 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 
 import android.annotation.SuppressLint;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.location.Criteria;
@@ -25,12 +28,15 @@ import android.os.CountDownTimer;
 import android.os.Handler;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -42,6 +48,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -75,10 +82,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private ImageButton btn_speed_control_maker;
     private ImageButton btn_traffic_accident_maker;
     private ImageButton btn_police_voiture_maker;
-    private Button logOut;
     private boolean menu_visibility = false;
     private int minBlckAddMaker = 1;
     private double distance = 5000;
+    private ImageButton menuButton;
+    private GoogleMap gmCP;
 
     public interface OnMarkerInfoCallback {
         void onSuccess(com.example.trafficeventsapp.Marker markerInfo);
@@ -93,6 +101,52 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         findViews();
         checkMyPermission();
 
+        menuButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                PopupMenu popup = new PopupMenu(MapActivity.this, menuButton);
+                popup.getMenuInflater().inflate(R.menu.popup_menu, popup.getMenu());
+
+                if (gmCP.isTrafficEnabled()) {
+                    popup.getMenu().getItem(0).setTitle(getResources().getString(R.string.hide_traffic));
+                } else {
+                    popup.getMenu().getItem(0).setTitle(getResources().getString(R.string.show_traffic));
+                }
+
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        switch (item.getItemId()) {
+                            case R.id.menu_item_show_traffic:
+                                if (gmCP != null && !gmCP.isTrafficEnabled()) {
+                                    gmCP.setTrafficEnabled(true);
+                                } else {
+                                    gmCP.setTrafficEnabled(false);
+                                }
+                                return true;
+                            case R.id.menu_item_logout:
+                                new AlertDialog.Builder(MapActivity.this)
+                                        .setTitle("Wylogowanie")
+                                        .setMessage("Czy na pewno chcesz się wylogować?")
+                                        .setPositiveButton("Tak", new DialogInterface.OnClickListener() {
+                                            @Override
+                                            public void onClick(DialogInterface dialog, int which) {
+                                                FirebaseAuth mAuth = FirebaseAuth.getInstance();
+                                                mAuth.signOut();
+                                                startActivity(new Intent(MapActivity.this, LoginActivity.class));
+                                            }
+                                        })
+                                        .setNegativeButton("Nie", null)
+                                        .show();
+                                return true;
+                        }
+                        return true;
+                    }
+                });
+                popup.show();
+            }
+        });
+
         mapFragment.getMapAsync(this);
     }
 
@@ -100,24 +154,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.maps);
         lin_lay_menu = (LinearLayout) findViewById(R.id.linear_layout_menu);
         bottomSheet = findViewById(R.id.bottom_sheet);
-
+        menuButton = findViewById(R.id.menu_button);
         btnAddMaker = (ImageButton) findViewById(R.id.buttonAddMaker);
         btn_speed_control_maker = (ImageButton) findViewById(R.id.btn_speed_control_maker);
         btn_traffic_accident_maker = (ImageButton) findViewById(R.id.btn_traffic_accident_maker);
         btn_police_voiture_maker = (ImageButton) findViewById(R.id.btn_police_voituer_maker);
-
-
-        logOut = (Button) findViewById(R.id.btnLogOut);
-        logOut.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                FirebaseAuth mAuth = FirebaseAuth.getInstance();
-                mAuth.signOut();
-                startActivity(new Intent(MapActivity.this, LoginActivity.class));
-
-            }
-        });
-
         btnAddMaker.setOnClickListener(this);
         btn_speed_control_maker.setOnClickListener(this);
         btn_traffic_accident_maker.setOnClickListener(this);
@@ -129,7 +170,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
         if (!v.isEnabled())
             Toast.makeText(getApplicationContext(), "Przycisk jest nieaktywny. Poczekaj 3 minuty", Toast.LENGTH_SHORT).show();
-
         switch (v.getId()) {
             case R.id.buttonAddMaker:
                 show_makers_menu();
@@ -169,8 +209,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         btn_traffic_accident_maker.setEnabled(b);
         btn_police_voiture_maker.setEnabled(b);
         btnAddMaker.setEnabled(b);
-
-
     }
 
     private void show_makers_menu() {
@@ -197,7 +235,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             double longitude = location.getLongitude();
             LatLng myLocation = new LatLng(latitude, longitude);
             int ic_red = 5;
-
 
             Bitmap imageBitmap = null, resizedBitmap = null;
             MarkerOptions markerOptions = null;
@@ -229,37 +266,18 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             String idd = UUID.randomUUID().toString();
             markerOptions.title(idd);
 
-
-            databaseClass.checkIfMarkersExist(geoLocation, eventId, markerOptions, mGoogleMap, new DatabaseClass.OnCheckMarkersExistCallback() {
+            databaseClass.checkMarkersExist(markerOptions, mGoogleMap, geoLocation, eventId, new DatabaseClass.OnMarkersExistListener() {
                 @Override
-                public void onMarkerExists() {
-                    Log.d("TAG", "Takie same");
-                    // Pinezka już istnieje, nie dodajemy nowej
-                }
-
-                @Override
-                public void onMarkerNotExist() {
-                    // Pinezka nie istnieje, dodajemy nową
-                    Log.d("TAG", "Takie same");
-
-                }
-
-                @Override
-                public void onCheckMarkersExistError(DatabaseError error) {
-                    Log.d("TAG", "Takie same");
-                    // Błąd podczas sprawdzania, obsłuż go
+                public void onMarkerExist(boolean exist) {
+                    if (exist) {
+                        Log.e(TAG, "Istnieje");
+                        // marker istnieje
+                    } else {
+                        Log.e(TAG, "Nie istnieje");
+                        // marker nie istnieje
+                    }
                 }
             });
-
-
-
-           /* if (!databaseClass.isMarkerExist()) {
-                Marker marker = mGoogleMap.addMarker(markerOptions);
-                databaseClass.addMakerToDatabase(markerOptions, marker, eventId);
-            }*/
-
-
-
         }
     }
 
@@ -286,17 +304,26 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }).check();
     }
 
-
     @SuppressLint("MissingPermission")
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
+
         mGoogleMap = googleMap;
         enableMyLocation();
         UiSettings uiSettings = mGoogleMap.getUiSettings();
         uiSettings.setScrollGesturesEnabled(false);
         uiSettings.setZoomGesturesEnabled(false);
         uiSettings.setMyLocationButtonEnabled(false);
+        gmCP = googleMap;
 
+        try {
+            boolean success = googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this, R.raw.map_style_dark));
+            if (!success) {
+                Log.e(TAG, "Nie udało się ustawić stylu mapy.");
+            }
+        } catch (Resources.NotFoundException e) {
+            Log.e(TAG, "Nie udało się wczytać stylu mapy. Błąd: ", e);
+        }
 
         googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
@@ -360,11 +387,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                                 }
                             }
                         };
-
                         handler.post(runnable);
-
                         refreshCount.setText(String.valueOf(markerInfo.getRefreshCount()));
-
                         dialog.show();
                     }
 
@@ -383,7 +407,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
 
     private void displayCurrentLocation() {
-
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
             if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
@@ -504,7 +527,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             is.close();
             json = new String(buffer, "UTF-8");
         } catch (IOException ex) {
-
         }
         return json;
     }

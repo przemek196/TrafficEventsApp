@@ -33,4 +33,7 @@
     <string name="speed_cntrl">Kontrola prędkości</string>
     <string name="traff_acc">Zdarzenie drogowe</string>
     <string name="polic_car">Radiowóz policyjny</string>
+    <string name="show_traffic">Pokaż natężenie ruchu</string>
+    <string name="hide_traffic">Ukryj natężenie ruchu</string>
+    <string name="logout">Wyloguj</string>
 </resources>

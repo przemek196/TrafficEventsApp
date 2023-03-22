@@ -1,19 +1,25 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    xmlns:map="http://schemas.android.com/tools">
 
     <fragment
-    android:id="@+id/maps"
-    class="com.google.android.gms.maps.SupportMapFragment"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent" />
+        android:id="@+id/maps"
+        class="com.google.android.gms.maps.SupportMapFragment"
+        map:mapType="normal"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
-    <Button
-        android:id="@+id/btnLogOut"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Logout"></Button>
+    <ImageButton
+        android:id="@+id/menu_button"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_margin="20dp"
+        android:background="@drawable/ic_menu"
+        android:padding="16dp" />
 
     <LinearLayout
         android:layout_width="wrap_content"
@@ -69,10 +75,6 @@
             android:layout_width="80dp"
             android:layout_height="80dp"
             android:layout_gravity="center_horizontal"
-            android:background="@drawable/add_ic">
-        </ImageButton>
-
+            android:background="@drawable/add_ic"></ImageButton>
     </LinearLayout>
-
-
 </RelativeLayout>

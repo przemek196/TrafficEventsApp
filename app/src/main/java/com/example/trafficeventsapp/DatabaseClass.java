@@ -23,10 +23,9 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 
-import java.util.concurrent.Semaphore;
+import java.util.Calendar;
 
 public class DatabaseClass {
 
@@ -42,6 +41,11 @@ public class DatabaseClass {
     private LocationClass mLocationClass;
     private boolean markerExist = false;
 
+
+    public interface OnMarkersExistListener {
+        void onMarkerExist(boolean exist);
+    }
+
     public DatabaseClass() {
     }
 
@@ -55,8 +59,12 @@ public class DatabaseClass {
         GeoFire geoFire = new GeoFire(ref);
 
         long currentTimestamp = System.currentTimeMillis();
-        long twentyMinutesInMilliseconds = 20 * 60 * 1000; //20 minutes
-        Marker pin = new Marker(eventId, mAuth.getCurrentUser().getUid(), currentTimestamp, currentTimestamp + twentyMinutesInMilliseconds, 1);
+        long minInMls = 20 * 60 * 1000; //20 minutes
+        if(eventId.equals("polivoit"))
+        {
+            minInMls = 5 * 60 * 1000; //20 minutes
+        }
+        Marker pin = new Marker(eventId, mAuth.getCurrentUser().getUid(), currentTimestamp, currentTimestamp + minInMls, 1);
 
 // Zapisywanie obiektu w Geofire pod określonym kluczem (markerId) i z określoną lokalizacją (lat, lng)
         geoFire.setLocation(markerOptions.getTitle(), new GeoLocation(markerOptions.getPosition().latitude, markerOptions.getPosition().longitude), new GeoFire.CompletionListener() {
@@ -202,7 +210,95 @@ public class DatabaseClass {
     }
 
 
-    public void checkIfMarkersExist(GeoLocation geoLocation, String eventId, MarkerOptions markerOptions, GoogleMap mGoogleMap, final OnCheckMarkersExistCallback callback) {
+    public void checkMarkersExist(MarkerOptions markerOptions, GoogleMap mGoogleMap, GeoLocation geoLocation, String eventId, OnMarkersExistListener listener) {
+
+        //DatabaseReference geofire = database.getReference("geofire");
+        GeoFire geoFire = new GeoFire(ref);
+        GeoQuery geoQuery = geoFire.queryAtLocation(geoLocation, 1.0); // promień 1km
+
+        // zmienna przechowująca informację o tym, czy już wystąpiła pinezka w pobliżu
+
+
+        geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
+            boolean anyMarkerExist = false;
+            boolean isDifferenTypeOfMarker = false;
+            boolean isPlusAdded = false;
+
+            @Override
+            public void onKeyEntered(String key, GeoLocation location) {
+                DatabaseReference markerRef = markersRef.child(key);
+                anyMarkerExist = true;
+
+                markerRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        if (dataSnapshot.exists()) {
+                            markerExist = true; // zmiana wartości zmiennej na true w przypadku wystąpienia pinezki
+
+                            String evID = dataSnapshot.child("eventID").getValue(String.class);
+                            if (evID.equals(eventId) && !markerOptions.getTitle().equals(key)) {
+                                int refCount = dataSnapshot.child("refreshCount").getValue(int.class);
+                                refCount++;
+                                DatabaseReference ref = dataSnapshot.getRef();
+                                ref.child("refreshCount").setValue(refCount);
+                                Calendar cal = Calendar.getInstance();
+
+
+                               if(eventId.equals("speedcntrl") || eventId.equals("accidnt") )
+                               {
+                                   cal.add(Calendar.MINUTE, 20);
+                               }else
+                               {
+                                   cal.add(Calendar.MINUTE, 5);
+                               }
+
+                                long expirationTime = cal.getTimeInMillis();
+                                ref.child("expirationTime").setValue(expirationTime);
+
+                            }
+
+
+                        } else {
+                            Log.e(TAG, "Koniec rekordów");
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+                        Log.e(TAG, "Failed to check markers exist: " + databaseError.getMessage());
+                    }
+                });
+            }
+
+            @Override
+            public void onKeyExited(String key) {
+                // do nothing
+            }
+
+            @Override
+            public void onKeyMoved(String key, GeoLocation location) {
+                // do nothing
+            }
+
+            @Override
+            public void onGeoQueryReady() {
+                if (!anyMarkerExist) {
+                    com.google.android.gms.maps.model.Marker marker = mGoogleMap.addMarker(markerOptions);
+                    addMakerToDatabase(markerOptions, marker, eventId);
+                }
+            }
+
+            @Override
+            public void onGeoQueryError(DatabaseError error) {
+                Log.e(TAG, "Failed to check markers exist: " + error.getMessage());
+            }
+        });
+    }
+
+
+
+
+  /*  public void checkIfMarkersExist(GeoLocation geoLocation, String eventId, MarkerOptions markerOptions, GoogleMap mGoogleMap, final OnCheckMarkersExistCallback callback) {
 
         DatabaseReference geofireRef = database.getReference("geofire");
         GeoFire geoFire = new GeoFire(geofireRef);
@@ -253,30 +349,16 @@ public class DatabaseClass {
                 callback.onCheckMarkersExistError(error);
             }
         });
+
+
+
     }
 
     public interface OnCheckMarkersExistCallback {
         void onMarkerExists();
         void onMarkerNotExist();
         void onCheckMarkersExistError(DatabaseError error);
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    }*/
 
   /*  public void checkIfMarkersExist(GeoLocation geoLocation, String eventId, MarkerOptions markerOptions, GoogleMap mGoogleMap) {
 
@@ -335,15 +417,6 @@ public class DatabaseClass {
 */
 
 
-
-
-
-
-
-
-
-
-
     public boolean isMarkerExist() {
         return markerExist;
     }
@@ -351,4 +424,5 @@ public class DatabaseClass {
     public void setMarkerExist(boolean markerExist) {
         this.markerExist = markerExist;
     }
+
 }
