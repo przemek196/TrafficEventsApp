@@ -5,11 +5,19 @@ import static android.content.ContentValues.TAG;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Picture;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.PictureDrawable;
 import android.location.Location;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.caverock.androidsvg.SVG;
+import com.caverock.androidsvg.SVGParseException;
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
 import com.firebase.geofire.GeoQuery;
@@ -25,7 +33,12 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 
 public class DatabaseClass {
 
@@ -40,6 +53,8 @@ public class DatabaseClass {
     private Context mContext;
     private LocationClass mLocationClass;
     private boolean markerExist = false;
+    private final int timeMarkerSpeedCntrl = 1;
+    private ArrayList<com.google.android.gms.maps.model.Marker> markersList;
 
 
     public interface OnMarkersExistListener {
@@ -47,22 +62,31 @@ public class DatabaseClass {
     }
 
     public DatabaseClass() {
+        // mDatabase = FirebaseDatabase.getInstance("https://traffic-events-app-15a65-default-rtdb.europe-west1.firebasedatabase.app/").getReference();
+    }
+
+
+    public ArrayList<com.google.android.gms.maps.model.Marker> getMarkersList() {
+        return markersList;
+    }
+
+    public void setMarkersList(ArrayList<com.google.android.gms.maps.model.Marker> markersList) {
+        this.markersList = markersList;
     }
 
     public DatabaseClass(Context context) {
         mContext = context;
         mLocationClass = new LocationClass(mContext);
+        markersList = new ArrayList<com.google.android.gms.maps.model.Marker>();
     }
 
     public void addMakerToDatabase(MarkerOptions markerOptions, com.google.android.gms.maps.model.Marker marker, String eventId) {
 
         GeoFire geoFire = new GeoFire(ref);
-
         long currentTimestamp = System.currentTimeMillis();
-        long minInMls = 20 * 60 * 1000; //20 minutes
-        if(eventId.equals("polivoit"))
-        {
-            minInMls = 5 * 60 * 1000; //20 minutes
+        long minInMls = timeMarkerSpeedCntrl * 60 * 1000; //marker spped control and accident time
+        if (eventId.equals("polivoit")) {
+            minInMls = 5 * 60 * 1000; //police car marker
         }
         Marker pin = new Marker(eventId, mAuth.getCurrentUser().getUid(), currentTimestamp, currentTimestamp + minInMls, 1);
 
@@ -87,19 +111,26 @@ public class DatabaseClass {
     public void updateGeoQuery(Location location, GoogleMap mGoogleMap) {
         // Utwórz nową GeoQuery z nowymi parametrami lokalizacji i promienia.
         GeoFire geoFire = new GeoFire(ref);
-        geoQuery = geoFire.queryAtLocation(new GeoLocation(location.getLatitude(), location.getLongitude()), radiusInM);
-
+        geoQuery = geoFire.queryAtLocation(new GeoLocation(location.getLatitude(), location.getLongitude()), radiusInKm);
+        //   mGoogleMap.clear();
         // Zarejestruj nasłuchiwacza zdarzeń GeoQuery.
+        for (com.google.android.gms.maps.model.Marker m : markersList) {
+            m.remove();
+        }
+        markersList.clear();
+
+
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
             @Override
             public void onKeyEntered(String key, GeoLocation location) {
 
+                List<DataSnapshot> dataSnapshotList = new ArrayList<>();
                 DatabaseReference markerRef = markersRef.child(key);
                 markerRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                         if (dataSnapshot.exists()) {
-                            // Pobierz wartość pola "eventI" z DataSnapshot
+                            // Pobierz wartość pola "eventId" z DataSnapshot
                             String eventID = dataSnapshot.child("eventID").getValue(String.class);
                             Log.d(TAG, "Wartość pola eventI dla markera " + dataSnapshot.getValue() + " wynosi: " + eventID);
 
@@ -107,32 +138,83 @@ public class DatabaseClass {
 
                             //wstaw pinezke
                             Bitmap imageBitmap = null, resizedBitmap = null;
-                            int ic_red = 5;
+                            int ic_red = 12;
                             //add makers on map
                             switch (eventID) {
                                 case "speedcntrl":
-                                    int a = 5;
-                                    imageBitmap = BitmapFactory.decodeResource(mContext.getResources(), R.drawable.ic_map_speed);
+                                    imageBitmap = BitmapFactory.decodeResource(mContext.getResources(), R.drawable.speed_cntrl_ic);
                                     resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
                                     break;
                                 case "accidnt":
-                                    imageBitmap = BitmapFactory.decodeResource(mContext.getResources(), R.drawable.ic_map_crash);
+                                    imageBitmap = BitmapFactory.decodeResource(mContext.getResources(), R.drawable.car_cc_ic);
                                     resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
                                     break;
                                 case "polivoit":
-                                    imageBitmap = BitmapFactory.decodeResource(mContext.getResources(), R.drawable.ic_map_vouiter_police);
+                                    imageBitmap = BitmapFactory.decodeResource(mContext.getResources(), R.drawable.pol_car_ic);
                                     resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
                                     break;
                                 default:
                                     break;
                             }
 
-
                             //add refresh count icon
                             int refreshCount = dataSnapshot.child("refreshCount").getValue(int.class);
-                            MarkerOptions markerOptions = new MarkerOptions().title(dataSnapshot.getKey()).position(latLng).icon(BitmapDescriptorFactory.fromBitmap(resizedBitmap)).
-                                    snippet(String.valueOf(refreshCount));
-                            com.google.android.gms.maps.model.Marker mMarker = mGoogleMap.addMarker(markerOptions);
+
+                            //tutaj usuwam pinezke której czas minął z mapy
+                            long endTime = dataSnapshot.child("expirationTime").getValue(long.class);
+                            long currentTime = System.currentTimeMillis();
+
+                            long remainingTime = (endTime - currentTime) / 1000;
+                            boolean markExistOnMap = false;
+
+
+                            if (markersList.isEmpty()) {
+                                MarkerOptions markerOptions = new MarkerOptions().title(dataSnapshot.getKey()).position(latLng).icon(BitmapDescriptorFactory.fromBitmap(resizedBitmap)).
+                                        snippet(String.valueOf(refreshCount));
+                                com.google.android.gms.maps.model.Marker mMarker = mGoogleMap.addMarker(markerOptions);
+                                markersList.add(mMarker);
+                                int a = 5;
+                            } else {
+
+                                //sprawdzam czy mam taki marker na mapie
+                                for (com.google.android.gms.maps.model.Marker m : markersList) {
+                                    if (m.getTitle().equals(dataSnapshot.getKey())) { //jeżeli istnieje to znaczy, że taki marker już jest na mapie
+                                        markExistOnMap = true;
+                                        break;
+                                    }
+                                }
+                                if (!markExistOnMap) {
+                                    if (remainingTime >= 0L) {
+                                        MarkerOptions markerOptions = new MarkerOptions().title(dataSnapshot.getKey()).position(latLng).icon(BitmapDescriptorFactory.fromBitmap(resizedBitmap)).
+                                                snippet(String.valueOf(refreshCount));
+                                        com.google.android.gms.maps.model.Marker mMarker = mGoogleMap.addMarker(markerOptions);
+                                        markersList.add(mMarker);
+                                    }
+                                }
+                            }
+
+                            boolean isExist = false;
+                            int index = 0;
+                            //usun stare markery
+                            for (com.google.android.gms.maps.model.Marker m : markersList) {
+                                if (m.getTitle().equals(dataSnapshot.getKey())) { //jeżeli istnieje to znaczy, że taki marker już jest na mapie
+                                    isExist = true;
+                                    break;
+                                }
+                            }
+
+                            if (!isExist) {
+                                com.google.android.gms.maps.model.Marker markerToRemove = markersList.get(index);
+                                markerToRemove.remove();
+                                markersList.remove(markerToRemove);
+                            }
+
+
+                           /* if (remainingTime >= 0L) {
+                                MarkerOptions markerOptions = new MarkerOptions().title(dataSnapshot.getKey()).position(latLng).icon(BitmapDescriptorFactory.fromBitmap(resizedBitmap)).
+                                        snippet(String.valueOf(refreshCount));
+                                com.google.android.gms.maps.model.Marker mMarker = mGoogleMap.addMarker(markerOptions);
+                            }*/
 
 
                         } else {
@@ -209,7 +291,6 @@ public class DatabaseClass {
         });
     }
 
-
     public void checkMarkersExist(MarkerOptions markerOptions, GoogleMap mGoogleMap, GeoLocation geoLocation, String eventId, OnMarkersExistListener listener) {
 
         //DatabaseReference geofire = database.getReference("geofire");
@@ -217,8 +298,6 @@ public class DatabaseClass {
         GeoQuery geoQuery = geoFire.queryAtLocation(geoLocation, 1.0); // promień 1km
 
         // zmienna przechowująca informację o tym, czy już wystąpiła pinezka w pobliżu
-
-
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
             boolean anyMarkerExist = false;
             boolean isDifferenTypeOfMarker = false;
@@ -242,22 +321,14 @@ public class DatabaseClass {
                                 DatabaseReference ref = dataSnapshot.getRef();
                                 ref.child("refreshCount").setValue(refCount);
                                 Calendar cal = Calendar.getInstance();
-
-
-                               if(eventId.equals("speedcntrl") || eventId.equals("accidnt") )
-                               {
-                                   cal.add(Calendar.MINUTE, 20);
-                               }else
-                               {
-                                   cal.add(Calendar.MINUTE, 5);
-                               }
-
+                                if (eventId.equals("speedcntrl") || eventId.equals("accidnt")) {
+                                    cal.add(Calendar.MINUTE, timeMarkerSpeedCntrl);
+                                } else {
+                                    cal.add(Calendar.MINUTE, 5);
+                                }
                                 long expirationTime = cal.getTimeInMillis();
                                 ref.child("expirationTime").setValue(expirationTime);
-
                             }
-
-
                         } else {
                             Log.e(TAG, "Koniec rekordów");
                         }
@@ -294,9 +365,6 @@ public class DatabaseClass {
             }
         });
     }
-
-
-
 
   /*  public void checkIfMarkersExist(GeoLocation geoLocation, String eventId, MarkerOptions markerOptions, GoogleMap mGoogleMap, final OnCheckMarkersExistCallback callback) {
 
@@ -416,13 +484,14 @@ public class DatabaseClass {
     }
 */
 
-
+/*
     public boolean isMarkerExist() {
         return markerExist;
     }
 
     public void setMarkerExist(boolean markerExist) {
         this.markerExist = markerExist;
-    }
+    }*/
+
 
 }

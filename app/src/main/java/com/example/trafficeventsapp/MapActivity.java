@@ -12,12 +12,19 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Point;
+import android.graphics.drawable.BitmapDrawable;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
@@ -32,9 +39,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.TextView;
@@ -46,14 +51,15 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.UiSettings;
+import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DatabaseError;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionDeniedResponse;
@@ -82,11 +88,34 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private ImageButton btn_speed_control_maker;
     private ImageButton btn_traffic_accident_maker;
     private ImageButton btn_police_voiture_maker;
+    private ImageButton btn_displayCurrentDirection;
     private boolean menu_visibility = false;
     private int minBlckAddMaker = 1;
     private double distance = 5000;
     private ImageButton menuButton;
     private GoogleMap gmCP;
+    private boolean isDirectionButtonPressed = true;
+    private Marker mCurrentLocationMarker;
+    private Location mLastKnownLocation;
+    private Bitmap mMarkerBitmap;
+    private Marker mMarker;
+    private SensorManager mSensorManager;
+    private Sensor mAccelerometer;
+    private Sensor mMagnetometer;
+    private float[] mGravity = new float[3];
+    private float[] mGeomagnetic = new float[3];
+    private float mBearing = 0f;
+    private Location mPreviousLocation;
+    private long lastUpdateTime = 0;
+    DatabaseClass databaseClass;
+
+    private LatLng userLocation;
+    private String pinType;
+
+    private DatabaseClass database;
+    private int mMarkerType;
+    private int mMarkerTime;
+
 
     public interface OnMarkerInfoCallback {
         void onSuccess(com.example.trafficeventsapp.Marker markerInfo);
@@ -98,8 +127,16 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
+        mLastKnownLocation = new Location("");
         findViews();
         checkMyPermission();
+
+         databaseClass = new DatabaseClass(this);
+        // Inicjalizacja sensora ruchu
+        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        mMagnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        database = new DatabaseClass();
 
         menuButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -159,10 +196,18 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         btn_speed_control_maker = (ImageButton) findViewById(R.id.btn_speed_control_maker);
         btn_traffic_accident_maker = (ImageButton) findViewById(R.id.btn_traffic_accident_maker);
         btn_police_voiture_maker = (ImageButton) findViewById(R.id.btn_police_voituer_maker);
+        btn_displayCurrentDirection = (ImageButton) findViewById(R.id.btnDisplayDirection);
+
+        btn_displayCurrentDirection.setOnClickListener(view -> enableDirection());
+
         btnAddMaker.setOnClickListener(this);
         btn_speed_control_maker.setOnClickListener(this);
         btn_traffic_accident_maker.setOnClickListener(this);
         btn_police_voiture_maker.setOnClickListener(this);
+    }
+
+    private void enableDirection() {
+        isDirectionButtonPressed = true;
     }
 
     @Override
@@ -216,11 +261,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             Animation showAnimation = AnimationUtils.loadAnimation(this, R.anim.fade_in_animation);
             lin_lay_menu.startAnimation(showAnimation);
             lin_lay_menu.setVisibility(View.VISIBLE);
-
         } else {
             lin_lay_menu.setVisibility(View.GONE);
         }
     }
+
 
     private void addMakerOnMap(int id) {
         LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
@@ -234,35 +279,37 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             double latitude = location.getLatitude();
             double longitude = location.getLongitude();
             LatLng myLocation = new LatLng(latitude, longitude);
-            int ic_red = 5;
+            // int ic_red = 12;
 
-            Bitmap imageBitmap = null, resizedBitmap = null;
+            //Bitmap imageBitmap = null, resizedBitmap = null;
             MarkerOptions markerOptions = null;
-            //add makers on map
+            //add markers on map
             String eventId = "";
             switch (id) {
                 case R.id.btn_speed_control_maker:
-                    imageBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_map_speed);
-                    resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
+                    //   imageBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.speed_cntrl_ic);
+                    //  resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
                     eventId = "speedcntrl";
                     break;
                 case R.id.btn_traffic_accident_maker:
-                    imageBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_map_crash);
-                    resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
+                    //  imageBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.car_cc_ic);
+                    //   resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
                     eventId = "accidnt";
                     break;
                 case R.id.btn_police_voituer_maker:
-                    imageBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_map_vouiter_police);
-                    resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
+                    //    imageBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.pol_car_ic);
+                    //  resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
                     eventId = "polivoit";
                     break;
                 default:
                     break;
             }
 
-            DatabaseClass databaseClass = new DatabaseClass(this);
+
             GeoLocation geoLocation = new GeoLocation(latitude, longitude);
-            markerOptions = new MarkerOptions().position(myLocation).icon(BitmapDescriptorFactory.fromBitmap(resizedBitmap));
+            //markerOptions = new MarkerOptions().position(myLocation).icon(BitmapDescriptorFactory.fromBitmap(resizedBitmap));
+
+             markerOptions = new MarkerOptions().position(myLocation);
             String idd = UUID.randomUUID().toString();
             markerOptions.title(idd);
 
@@ -308,14 +355,18 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
 
+
         mGoogleMap = googleMap;
+        gmCP = googleMap;
+        mGoogleMap.getUiSettings().setCompassEnabled(false);
+        mGoogleMap.setPadding(0, 800, 0, 0);
+        mGoogleMap.setMinZoomPreference(14.0f);
+
         enableMyLocation();
         UiSettings uiSettings = mGoogleMap.getUiSettings();
-        uiSettings.setScrollGesturesEnabled(false);
-        uiSettings.setZoomGesturesEnabled(false);
-        uiSettings.setMyLocationButtonEnabled(false);
-        gmCP = googleMap;
+        googleMap.getUiSettings().setMyLocationButtonEnabled(false);
 
+        //Ustawianie stylu mapy
         try {
             boolean success = googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this, R.raw.map_style_dark));
             if (!success) {
@@ -325,6 +376,18 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             Log.e(TAG, "Nie udało się wczytać stylu mapy. Błąd: ", e);
         }
 
+        //jeżeli kamera się przesunie to nie aktualizuje pozycji
+        mGoogleMap.setOnCameraMoveStartedListener(new GoogleMap.OnCameraMoveStartedListener() {
+            @Override
+            public void onCameraMoveStarted(int reason) {
+                // Jeśli przycisk kierunku jazdy jest wciśnięty, ustaw wartość na false po przesunięciu kamery
+                if (reason == GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE) {
+                    isDirectionButtonPressed = false;
+                }
+            }
+        });
+
+        //obsługa wciśnięcia markera na mapie
         googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
@@ -333,10 +396,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 dialog.setContentView(view);
 
                 String markerId = marker.getTitle();
-                DatabaseClass dbClass = new DatabaseClass(MapActivity.this);
-                //  Map<String, Object> markerInfo = dbClass.getMarkerInfo(markerId);
-
-                dbClass.getMarkerInfo(markerId, new OnMarkerInfoCallback() {
+                databaseClass.getMarkerInfo(markerId, new OnMarkerInfoCallback() {
                     @Override
                     public void onSuccess(com.example.trafficeventsapp.Marker markerInfo) {
                         TextView eventName = view.findViewById(R.id.eventName);
@@ -401,99 +461,33 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             }
         });
 
-        displayCurrentLocation();
-        startLocationUpdates();
-
+        //     enableMyLocation();
     }
 
-    private void displayCurrentLocation() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                Location lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                if (lastKnownLocation == null) {
-                    LocationListener locationListener = new LocationListener() {
-                        @Override
-                        public void onLocationChanged(Location location) {
-                            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-                            mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-                            mGoogleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
-
-                            locationManager.removeUpdates(this);
-                        }
-
-                        @Override
-                        public void onProviderEnabled(String provider) {
-                        }
-
-                        @Override
-                        public void onProviderDisabled(String provider) {
-                        }
-
-                        @Override
-                        public void onStatusChanged(String provider, int status, Bundle extras) {
-                        }
-                    };
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-                } else {
-                    LatLng latLng = new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude());
-                    mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-                    mGoogleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
-                }
-            } else {
-                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                startActivity(intent);
-            }
-        } else {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-        }
-    }
-
-    private void startLocationUpdates() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                LocationListener locationListener = new LocationListener() {
-                    @Override
-                    public void onLocationChanged(Location location) {
-                        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-                        mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-                        mGoogleMap.animateCamera(CameraUpdateFactory.zoomTo(15));
-                        DatabaseClass dbClass = new DatabaseClass(getApplicationContext());
-                        dbClass.updateGeoQuery(location, mGoogleMap);
-                    }
-
-                    @Override
-                    public void onProviderEnabled(String provider) {
-                    }
-
-                    @Override
-                    public void onProviderDisabled(String provider) {
-                    }
-
-                    @Override
-                    public void onStatusChanged(String provider, int status, Bundle extras) {
-                    }
-                };
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-            } else {
-                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                startActivity(intent);
-            }
-        } else {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-        }
-    }
-
-
-    @SuppressLint("MissingPermission")
     private void enableMyLocation() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED
-                || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mGoogleMap.setMyLocationEnabled(true);
-            return;
+            mGoogleMap.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
+                @Override
+                public void onMyLocationChange(Location location) {
+
+                    if (isDirectionButtonPressed)
+                        if (location != null) {
+                            CameraPosition cameraPosition = new CameraPosition.Builder()
+                                    .target(new LatLng(location.getLatitude(), location.getLongitude()))
+                                    .bearing(location.getBearing())
+                                    .tilt(55)
+                                    .zoom(16)
+                                    .build();
+                            mGoogleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+                            long currentTime = System.currentTimeMillis();
+                            if (currentTime - lastUpdateTime > 20000) { // Limit czasowy 20 sekund sprawdzania nowych pinezek
+                                databaseClass.updateGeoQuery(location, mGoogleMap);
+                                lastUpdateTime = currentTime;
+                            }
+                        }
+                }
+            });
         }
     }
 
@@ -514,20 +508,20 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
 
     @Override
-    public void onLocationChanged(Location location) {
+    public void onResume() {
+        super.onResume();
+        // mSensorManager.registerListener(mSensorEventListener, mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
+        // mSensorManager.registerListener(mSensorEventListener, mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD), SensorManager.SENSOR_DELAY_NORMAL);
     }
 
-    private String loadJSONFromAsset(String fileName) {
-        String json = null;
-        try {
-            InputStream is = getAssets().open(fileName);
-            int size = is.available();
-            byte[] buffer = new byte[size];
-            is.read(buffer);
-            is.close();
-            json = new String(buffer, "UTF-8");
-        } catch (IOException ex) {
-        }
-        return json;
+    @Override
+    public void onPause() {
+        super.onPause();
+        //   mSensorManager.unregisterListener(mSensorEventListener);
+    }
+
+
+    @Override
+    public void onLocationChanged(Location location) {
     }
 }

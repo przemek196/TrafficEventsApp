@@ -11,6 +11,18 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+
+    <ImageButton
+        android:id="@+id/btnDisplayDirection"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="false"
+        android:layout_margin="15dp"
+        android:background="@drawable/displayloc_icon"
+        android:padding="8dp" />
+
+
     <ImageButton
         android:id="@+id/menu_button"
         android:layout_width="30dp"
@@ -44,21 +56,21 @@
                 android:layout_width="60dp"
                 android:layout_height="60dp"
                 android:layout_marginHorizontal="10dp"
-                android:background="@drawable/ic_speed_control"></ImageButton>
+                android:background="@drawable/speed_cntrl_ic"></ImageButton>
 
             <ImageButton
                 android:id="@+id/btn_traffic_accident_maker"
                 android:layout_width="60dp"
                 android:layout_height="60dp"
                 android:layout_marginHorizontal="10dp"
-                android:background="@drawable/ic_car_accident"></ImageButton>
+                android:background="@drawable/car_cc_ic"></ImageButton>
 
             <ImageButton
                 android:id="@+id/btn_police_voituer_maker"
                 android:layout_width="60dp"
                 android:layout_height="60dp"
                 android:layout_marginHorizontal="10dp"
-                android:background="@drawable/ic_voiture_the_police"></ImageButton>
+                android:background="@drawable/pol_car_ic"></ImageButton>
         </LinearLayout>
 
         <View
