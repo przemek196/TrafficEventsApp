@@ -212,7 +212,6 @@ public class DatabaseClass {
                     @Override
                     public void onCancelled(@NonNull DatabaseError databaseError) {
                         Log.d(TAG, "Błąd podczas pobierania danych z Firebase: " + databaseError.getMessage());
-                        int a = 5;
                     }
                 });
             }
@@ -223,29 +222,18 @@ public class DatabaseClass {
                     m.remove();
                     markersList.remove(m);
                 }
-                // Usuń punkt o kluczu "key" z mapy.
-                // ...
             }
 
             @Override
             public void onKeyMoved(String key, GeoLocation location) {
-                int a = 5;
-                // Zaktualizuj położenie punktu o kluczu "key" na mapie.
-                // ...
             }
 
             @Override
             public void onGeoQueryReady() {
-                int a = 5;
-                // Ta metoda jest wywoływana, gdy GeoQuery został w pełni wczytany i subskrybowany.
-                // ...
             }
 
             @Override
             public void onGeoQueryError(DatabaseError error) {
-                int a = 5;
-                // Ta metoda jest wywoływana, gdy wystąpi błąd podczas subskrybowania GeoQuery.
-                // ...
             }
         });
     }

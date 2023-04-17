@@ -12,6 +12,17 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <include
+        layout="@layout/marker_info_window"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:layout_marginTop="80dp"
+        android:layout_marginLeft="15dp"/>
+
+    <!-- pozostała część głównego layoutu -->
+
+
     <FrameLayout
         android:id="@+id/loading_layout"
         android:layout_width="match_parent"
@@ -65,14 +76,6 @@
         android:layout_margin="20dp"
         android:background="@drawable/ic_menu"
         android:padding="16dp" />
-
-
-
-
-
-
-
-
 
     <LinearLayout
         android:layout_width="wrap_content"

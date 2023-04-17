@@ -19,6 +19,7 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.hardware.Sensor;
@@ -51,14 +52,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.firebase.geofire.GeoLocation;
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.Projection;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
@@ -70,6 +74,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.maps.android.SphericalUtil;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionDeniedResponse;
@@ -115,10 +120,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private float[] mGravity = new float[3];
     private float[] mGeomagnetic = new float[3];
     private float mBearing = 0f;
-
+    private Location lastLocation;
+    private boolean firstUpdate = false;
     private long lastUpdateTime = 0;
     DatabaseClass databaseClass;
-
+    //   private LayoutInflater inflater_marker_window;
+    private View layout_marker_window;
 
     private ProgressBar mProgressBar;
     private FrameLayout frameL;
@@ -147,6 +154,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         mMagnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 
 
+        layout_marker_window = findViewById(R.id.marker_info_layout);
         menuButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -240,14 +248,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             default:
                 break;
         }
-
-
         /*if (v.getId() != R.id.buttonAddMaker) {
            block_events_buttons();
         }
    */
-
-
     }
 
     public void block_events_buttons() {
@@ -338,6 +342,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         toast.show();
                     }
                     if (callbackName.equals("event2")) {
+                        layout_marker_window.setVisibility(View.GONE);
                         FirebaseDatabase database = FirebaseDatabase.getInstance("https://traffic-events-app-15a65-default-rtdb.europe-west1.firebasedatabase.app/");
                         DatabaseReference userRef = database.getReference("users").child(useruid);
 
@@ -349,7 +354,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                                 LayoutInflater inflater = getLayoutInflater();
                                 View layout = inflater.inflate(R.layout.custom_toast, (ViewGroup) findViewById(R.id.toast_layout));
                                 TextView text = (TextView) layout.findViewById(R.id.toast_text);
-                                text.setText(getResources().getString(R.string.updateevent) + " " + username+"\n"+"Aktualna liczba zgłoszeń to: "+refreshCount);
+                                text.setText(getResources().getString(R.string.updateevent) + " " + username + "\n" + "Aktualna liczba zgłoszeń to: " + refreshCount);
 
                                 Toast toast = new Toast(getApplicationContext());
                                 toast.setGravity(Gravity.TOP, 0, 300);
@@ -408,7 +413,14 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         UiSettings uiSettings = mGoogleMap.getUiSettings();
         googleMap.getUiSettings().setMyLocationButtonEnabled(false);
 
-        //Ustawianie stylu mapy
+        mGoogleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(@NonNull LatLng latLng) {
+                layout_marker_window.setVisibility(View.GONE);
+            }
+        });
+
+        //set a map style
         try {
             boolean success = googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this, R.raw.map_style_dark));
             if (!success) {
@@ -434,19 +446,17 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
-                BottomSheetDialog dialog = new BottomSheetDialog(MapActivity.this);
-                View view = getLayoutInflater().inflate(R.layout.marker_info, null);
-                dialog.setContentView(view);
 
                 String markerId = marker.getTitle();
                 databaseClass.getMarkerInfo(markerId, new OnMarkerInfoCallback() {
                     @Override
                     public void onSuccess(com.example.trafficeventsapp.Marker markerInfo) {
-                        TextView eventName = view.findViewById(R.id.eventName);
-                        TextView creatorName = view.findViewById(R.id.creatorName);
-                        TextView creationTime = view.findViewById(R.id.creationTime);
-                        TextView expireTime = view.findViewById(R.id.expireTime);
-                        TextView refreshCount = view.findViewById(R.id.refreshCount);
+
+                        TextView eventName = layout_marker_window.findViewById(R.id.event_desc);
+                        TextView creationTime = layout_marker_window.findViewById(R.id.hour_desc);
+                        TextView creatorName = layout_marker_window.findViewById(R.id.user_desc);
+                        TextView refreshCount = layout_marker_window.findViewById(R.id.confirm_desc);
+
 
                         String eventFullName = "";
 
@@ -465,10 +475,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         }
 
                         eventName.setText(eventFullName);
-                        creatorName.setText(markerInfo.getCreatorName());
+                        creatorName.setText("Zgłosił: "+markerInfo.getCreatorName());
                         Date creatrion_date = new Date(markerInfo.getCreationTime());
-                        DateFormat cr_df = new SimpleDateFormat("HH:mm:ss");
-                        creationTime.setText(cr_df.format(creatrion_date));
+                        DateFormat cr_df = new SimpleDateFormat("HH:mm");
+                        creationTime.setText("Godzina: "+cr_df.format(creatrion_date));
 
                         long endTime = markerInfo.getExpirationTime();
 
@@ -480,19 +490,21 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                                 long remainingTime = (endTime - currentTime) / 1000;
 
                                 if (remainingTime <= 0) {
-                                    expireTime.setText("Czas minął");
+                                    //  expireTime.setText("Czas minął");
                                 } else {
                                     long hours = remainingTime / 3600;
                                     long minutes = (remainingTime % 3600) / 60;
                                     long seconds = remainingTime % 60;
-                                    expireTime.setText(String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds));
+                                    //  expireTime.setText(String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds));
                                     handler.postDelayed(this, 1000);
                                 }
                             }
                         };
-                        handler.post(runnable);
-                        refreshCount.setText(String.valueOf(markerInfo.getRefreshCount()));
-                        dialog.show();
+
+                        refreshCount.setText("Liczba potwierdzeń: "+ String.valueOf(markerInfo.getRefreshCount()));
+
+
+                        layout_marker_window.setVisibility(View.VISIBLE);
                     }
 
                     @Override
@@ -501,11 +513,13 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     }
                 });
                 return true;
+
             }
         });
 
         //     enableMyLocation();
     }
+
 
     private void enableMyLocation() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
@@ -514,20 +528,85 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 @Override
                 public void onMyLocationChange(Location location) {
 
+                    if (!firstUpdate) {
+                        databaseClass.updateGeoQuery(location, mGoogleMap);
+                        firstUpdate = true;
+                    }
+
                     if (frameL.getVisibility() == View.VISIBLE)
                         frameL.setVisibility(View.GONE);
 
+                    //animate camera
                     if (isDirectionButtonPressed)
                         if (location != null) {
-                            CameraPosition cameraPosition = new CameraPosition.Builder()
+                            if (lastLocation == null) {
+                                lastLocation = location;
+                                CameraPosition.Builder b = CameraPosition.builder().
+                                        zoom(15.0F).
+                                        target(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()));
+                                CameraUpdate cu = CameraUpdateFactory.newCameraPosition(b.build());
+                                mGoogleMap.animateCamera(cu);
+                                return;
+                            }
+
+                            LatLng oldPos = new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude());
+                            LatLng newPos = new LatLng(location.getLatitude(), location.getLongitude());
+
+                            double d = SphericalUtil.computeDistanceBetween(oldPos, newPos);
+                            if (d < 10) {
+                                return;
+                            }
+
+                            double bearing = SphericalUtil.computeHeading(oldPos, newPos);
+                            Projection p = mGoogleMap.getProjection();
+                            Point bottomRightPoint = p.toScreenLocation(p.getVisibleRegion().nearRight);
+                            Point center = new Point(bottomRightPoint.x / 2, bottomRightPoint.y / 2);
+                            Point offset = new Point(center.x, (center.y + 300));
+
+                            LatLng centerLoc = p.fromScreenLocation(center);
+                            LatLng offsetNewLoc = p.fromScreenLocation(offset);
+
+                            double offsetDistance = SphericalUtil.computeDistanceBetween(centerLoc, offsetNewLoc);
+
+                            LatLng shadowTgt = SphericalUtil.computeOffset(newPos, offsetDistance, bearing);
+
+                            // update circles
+                           /* if (centerCircle != null) {
+                                centerCircle.setCenter(shadowTgt);
+                            } else {
+                                centerCircle = mGoogleMap.addCircle(new CircleOptions().strokeColor(Color.BLUE).center(shadowTgt).radius(50));
+                            }
+                            if (carCircle != null) {
+                                carCircle.setCenter(newPos);
+                            } else {
+                                carCircle = mGoogleMap.addCircle(new CircleOptions().strokeColor(Color.GREEN).center(newPos).radius(50));
+                            }*/
+
+
+                            // update camera
+
+                            CameraPosition.Builder b = CameraPosition.builder();
+                            b.zoom(15.0F);
+                            b.bearing((float) (bearing));
+                            b.target(shadowTgt);
+                            b.tilt(55);
+                            CameraUpdate cu = CameraUpdateFactory.newCameraPosition(b.build());
+                            mGoogleMap.animateCamera(cu);
+
+                            lastLocation = location;
+
+                            /*CameraPosition cameraPosition = new CameraPosition.Builder()
                                     .target(new LatLng(location.getLatitude(), location.getLongitude()))
                                     .bearing(location.getBearing())
                                     .tilt(55)
                                     .zoom(16)
                                     .build();
-                            mGoogleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+                            mGoogleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));*/
+
+
+                            ///////////////////////////////////////
                             long currentTime = System.currentTimeMillis();
-                            if (currentTime - lastUpdateTime > 20000) { // Limit czasowy 20 sekund sprawdzania nowych pinezek
+                            if (currentTime - lastUpdateTime > 20000) { // time litmit to check markers
                                 databaseClass.updateGeoQuery(location, mGoogleMap);
                                 lastUpdateTime = currentTime;
                             }
