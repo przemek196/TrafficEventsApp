@@ -1,0 +1,18 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/toast_layout"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="70dp"
+    android:background="#B7393636"
+    android:padding="8dp">
+
+    <TextView
+        android:id="@+id/toast_text"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:layout_gravity="center_vertical"
+        android:text="Hello, World!"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+</LinearLayout>
