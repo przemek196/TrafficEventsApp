@@ -7,7 +7,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
+import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -41,7 +43,6 @@ public class RegisterActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
-
         editTextUserName = (EditText) findViewById(R.id.editTextUserName);
         editTextEmail = (EditText) findViewById(R.id.editTextEmail);
         editTextPassword = (EditText) findViewById(R.id.editTextPassword);
@@ -56,7 +57,31 @@ public class RegisterActivity extends AppCompatActivity {
         String email = editTextEmail.getText().toString();
         String password = editTextPassword.getText().toString();
         String userName = editTextUserName.getText().toString();
-        // checkIsFieldsIsFill(email,password,userName);
+
+
+        if (TextUtils.isEmpty(email)) {
+            editTextEmail.setError(getString(R.string.error_required_field));
+            return;
+        }
+        if (TextUtils.isEmpty(password)) {
+            editTextPassword.setError(getString(R.string.error_required_field));
+            return;
+        }
+        if (TextUtils.isEmpty(userName)) {
+            editTextUserName.setError(getString(R.string.error_required_field));
+            return;
+        }
+
+        if (!isValidEmail(email)) {
+            editTextEmail.setError(getString(R.string.error_invalid_email));
+            return;
+        }
+
+        if (password.length() < 6) {
+            editTextPassword.setError(getString(R.string.error_password_length));
+            return;
+        }
+
         progressbar.setVisibility(View.VISIBLE);
         mAuth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
             @Override
@@ -75,8 +100,6 @@ public class RegisterActivity extends AppCompatActivity {
                             values.put("email", mAuth.getCurrentUser().getEmail());
                             values.put("usere_name", userName);
                             markersRef.child(mAuth.getCurrentUser().getUid()).setValue(values);
-
-
                             Toast.makeText(getApplicationContext(), getResources().getString(R.string.verifyEmail), Toast.LENGTH_LONG).show();
                         }
                     });
@@ -102,13 +125,11 @@ public class RegisterActivity extends AppCompatActivity {
         });
     }
 
-    private boolean checkIsFieldsIsFill(String email, String password, String userName) {
-        return true;
+    private boolean isValidEmail(CharSequence target) {
+        return (!TextUtils.isEmpty(target) && Patterns.EMAIL_ADDRESS.matcher(target).matches());
     }
 
     private void backToLogin() {
         startActivity(new Intent(this, LoginActivity.class));
     }
-
-
 }

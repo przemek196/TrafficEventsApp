@@ -13,6 +13,7 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.PictureDrawable;
 import android.location.Location;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
@@ -58,7 +59,7 @@ public class DatabaseClass {
 
 
     public interface OnMarkersExistListener {
-        void onMarkerExist(boolean exist);
+        void onMarkerExist(String callbackName, String useruid, int refreshCount);
     }
 
     public DatabaseClass() {
@@ -80,7 +81,7 @@ public class DatabaseClass {
         markersList = new ArrayList<com.google.android.gms.maps.model.Marker>();
     }
 
-    public void addMakerToDatabase(MarkerOptions markerOptions, com.google.android.gms.maps.model.Marker marker, String eventId) {
+    public void addMakerToDatabase(MarkerOptions markerOptions, String eventId) {
 
         GeoFire geoFire = new GeoFire(ref);
         long currentTimestamp = System.currentTimeMillis();
@@ -112,12 +113,6 @@ public class DatabaseClass {
         // Utwórz nową GeoQuery z nowymi parametrami lokalizacji i promienia.
         GeoFire geoFire = new GeoFire(ref);
         geoQuery = geoFire.queryAtLocation(new GeoLocation(location.getLatitude(), location.getLongitude()), radiusInKm);
-        //   mGoogleMap.clear();
-        // Zarejestruj nasłuchiwacza zdarzeń GeoQuery.
-        for (com.google.android.gms.maps.model.Marker m : markersList) {
-            m.remove();
-        }
-        markersList.clear();
 
 
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
@@ -208,16 +203,8 @@ public class DatabaseClass {
                                 markerToRemove.remove();
                                 markersList.remove(markerToRemove);
                             }
-
-
-                           /* if (remainingTime >= 0L) {
-                                MarkerOptions markerOptions = new MarkerOptions().title(dataSnapshot.getKey()).position(latLng).icon(BitmapDescriptorFactory.fromBitmap(resizedBitmap)).
-                                        snippet(String.valueOf(refreshCount));
-                                com.google.android.gms.maps.model.Marker mMarker = mGoogleMap.addMarker(markerOptions);
-                            }*/
-
-
                         } else {
+                            //if any marker didnt-exist
                             Log.d(TAG, "Nie znaleziono markera o ID " + key);
                         }
                     }
@@ -225,30 +212,38 @@ public class DatabaseClass {
                     @Override
                     public void onCancelled(@NonNull DatabaseError databaseError) {
                         Log.d(TAG, "Błąd podczas pobierania danych z Firebase: " + databaseError.getMessage());
+                        int a = 5;
                     }
                 });
             }
 
             @Override
             public void onKeyExited(String key) {
+                for (com.google.android.gms.maps.model.Marker m : markersList) {
+                    m.remove();
+                    markersList.remove(m);
+                }
                 // Usuń punkt o kluczu "key" z mapy.
                 // ...
             }
 
             @Override
             public void onKeyMoved(String key, GeoLocation location) {
+                int a = 5;
                 // Zaktualizuj położenie punktu o kluczu "key" na mapie.
                 // ...
             }
 
             @Override
             public void onGeoQueryReady() {
+                int a = 5;
                 // Ta metoda jest wywoływana, gdy GeoQuery został w pełni wczytany i subskrybowany.
                 // ...
             }
 
             @Override
             public void onGeoQueryError(DatabaseError error) {
+                int a = 5;
                 // Ta metoda jest wywoływana, gdy wystąpi błąd podczas subskrybowania GeoQuery.
                 // ...
             }
@@ -300,8 +295,8 @@ public class DatabaseClass {
         // zmienna przechowująca informację o tym, czy już wystąpiła pinezka w pobliżu
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
             boolean anyMarkerExist = false;
-            boolean isDifferenTypeOfMarker = false;
-            boolean isPlusAdded = false;
+            boolean exist = false;
+
 
             @Override
             public void onKeyEntered(String key, GeoLocation location) {
@@ -328,7 +323,12 @@ public class DatabaseClass {
                                 }
                                 long expirationTime = cal.getTimeInMillis();
                                 ref.child("expirationTime").setValue(expirationTime);
+                                listener.onMarkerExist("event2", dataSnapshot.child("creator").getValue(String.class),refCount);
+                            } else {
+                                //tutaj trzeba nie blokować przycisku i zwrócić informacje o tym, że inne zdarzenie jest w pobliżu
+                                listener.onMarkerExist("event1", "",0);
                             }
+
                         } else {
                             Log.e(TAG, "Koniec rekordów");
                         }
@@ -354,8 +354,7 @@ public class DatabaseClass {
             @Override
             public void onGeoQueryReady() {
                 if (!anyMarkerExist) {
-                    com.google.android.gms.maps.model.Marker marker = mGoogleMap.addMarker(markerOptions);
-                    addMakerToDatabase(markerOptions, marker, eventId);
+                    addMakerToDatabase(markerOptions, eventId);
                 }
             }
 
@@ -365,133 +364,5 @@ public class DatabaseClass {
             }
         });
     }
-
-  /*  public void checkIfMarkersExist(GeoLocation geoLocation, String eventId, MarkerOptions markerOptions, GoogleMap mGoogleMap, final OnCheckMarkersExistCallback callback) {
-
-        DatabaseReference geofireRef = database.getReference("geofire");
-        GeoFire geoFire = new GeoFire(geofireRef);
-        GeoQuery geoQuery = geoFire.queryAtLocation(geoLocation, 1.0);
-
-        geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
-            @Override
-            public void onKeyEntered(String key, GeoLocation location) {
-                DatabaseReference markerRef = database.getReference("markers").child(key);
-                markerRef.addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        if (dataSnapshot.exists()) {
-                            String exEventId = dataSnapshot.child("eventID").getValue(String.class);
-                            if (eventId.equals(exEventId)) {
-                                Log.d("TAG", "Takie same");
-                                dataSnapshot.getRef().child("refreshCount").setValue(ServerValue.increment(1));
-                                callback.onMarkerExists();
-                                return;
-                            }
-                        }
-                        callback.onMarkerNotExist();
-                    }
-
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
-                        callback.onCheckMarkersExistError(databaseError);
-                    }
-                });
-            }
-
-            @Override
-            public void onKeyExited(String key) {
-            }
-
-            @Override
-            public void onKeyMoved(String key, GeoLocation location) {
-            }
-
-            @Override
-            public void onGeoQueryReady() {
-                // Jeżeli nie znaleziono markerów, wywołaj callback z odpowiednią flagą
-                callback.onMarkerNotExist();
-            }
-
-            @Override
-            public void onGeoQueryError(DatabaseError error) {
-                callback.onCheckMarkersExistError(error);
-            }
-        });
-
-
-
-    }
-
-    public interface OnCheckMarkersExistCallback {
-        void onMarkerExists();
-        void onMarkerNotExist();
-        void onCheckMarkersExistError(DatabaseError error);
-    }*/
-
-  /*  public void checkIfMarkersExist(GeoLocation geoLocation, String eventId, MarkerOptions markerOptions, GoogleMap mGoogleMap) {
-
-        DatabaseReference geofireRef = database.getReference("geofire");
-        GeoFire geoFire = new GeoFire(geofireRef);
-        GeoQuery geoQuery = geoFire.queryAtLocation(geoLocation, 1.0);
-        markerExist = false;
-
-        geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
-            @Override
-            public void onKeyEntered(String key, GeoLocation location) {
-                DatabaseReference markerRef = database.getReference("markers").child(key);
-                markerRef.addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        if (dataSnapshot.exists()) {
-                            String exEventId = dataSnapshot.child("eventID").getValue(String.class);
-                            if (eventId.equals(exEventId)) {
-                                dataSnapshot.getRef().child("refreshCount").setValue(ServerValue.increment(1));
-                            }
-                        }
-                    }
-
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
-                        Log.e("TAG", "GeoQuery error: " );
-                    }
-                });
-            }
-
-            @Override
-            public void onKeyExited(String key) {
-                // usunięcie pinezki z listy znalezionych w okolicy
-                Log.e("TAG", "GeoQuery error: " );
-            }
-
-            @Override
-            public void onKeyMoved(String key, GeoLocation location) {
-                // przesunięcie pinezki
-                Log.e("TAG", "GeoQuery error: " );
-            }
-
-            @Override
-            public void onGeoQueryReady() {
-                Log.e("TAG", "GeoQuery error: " );
-            }
-
-            @Override
-            public void onGeoQueryError(DatabaseError error) {
-                Log.e("TAG", "GeoQuery error: " + error.getMessage());
-
-            }
-        });
-
-    }
-*/
-
-/*
-    public boolean isMarkerExist() {
-        return markerExist;
-    }
-
-    public void setMarkerExist(boolean markerExist) {
-        this.markerExist = markerExist;
-    }*/
-
 
 }

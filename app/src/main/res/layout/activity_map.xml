@@ -4,12 +4,45 @@
     android:layout_height="match_parent"
     xmlns:map="http://schemas.android.com/tools">
 
+
     <fragment
         android:id="@+id/maps"
         class="com.google.android.gms.maps.SupportMapFragment"
         map:mapType="normal"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
+
+    <FrameLayout
+        android:id="@+id/loading_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0F1313"
+        android:visibility="visible"
+        android:gravity="center">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_gravity="center">
+
+            <TextView
+                android:id="@+id/loading_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/waitforloc"
+                android:textSize="20sp" />
+
+            <ProgressBar
+                android:id="@+id/progress_bar"
+                android:layout_width="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="30dp"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/loading_text"
+                android:layout_centerHorizontal="true" />
+        </LinearLayout>
+    </FrameLayout>
 
 
     <ImageButton
@@ -32,6 +65,14 @@
         android:layout_margin="20dp"
         android:background="@drawable/ic_menu"
         android:padding="16dp" />
+
+
+
+
+
+
+
+
 
     <LinearLayout
         android:layout_width="wrap_content"
@@ -88,5 +129,7 @@
             android:layout_height="80dp"
             android:layout_gravity="center_horizontal"
             android:background="@drawable/add_ic"></ImageButton>
+
     </LinearLayout>
 </RelativeLayout>
+

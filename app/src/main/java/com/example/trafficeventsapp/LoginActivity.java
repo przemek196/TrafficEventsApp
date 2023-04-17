@@ -85,7 +85,6 @@ public class LoginActivity extends AppCompatActivity {
                             Intent intent = new Intent(LoginActivity.this, MapActivity.class);
                             startActivity(intent);
                         } else {
-                            //Toast.makeText(getApplicationContext(), getResources().getString(R.string.emailNotVeryfied), Toast.LENGTH_LONG).show();
                             emailVerification = editTextEmail.getText().toString();
                             firebaseUser = mAuth.getCurrentUser();
                             textViewLoginError.setText((getResources().getString(R.string.sendAgainEmailVeryfication)) + "\n" + emailVerification + "?");

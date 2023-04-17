@@ -36,4 +36,11 @@
     <string name="show_traffic">Pokaż natężenie ruchu</string>
     <string name="hide_traffic">Ukryj natężenie ruchu</string>
     <string name="logout">Wyloguj</string>
+    <string name="error_required_field">Pole wymagane</string>
+    <string name="error_invalid_email">Niepoprawny adres e-mail</string>
+    <string name="error_password_length">Hasło musi mieć minimum 6 znaków</string>
+    <string name="waitforloc">Ustalam lokalizację</string>
+    <string name="otherevent">Nie można dodać znacznika. W pobliżu znajduje się już inne zdarzenie</string>
+    <string name="updateevent">Potwierdzono zgłoszenie użytkownika</string>
+
 </resources>

@@ -35,13 +35,18 @@ import android.os.CountDownTimer;
 import android.os.Handler;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -60,6 +65,11 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionDeniedResponse;
@@ -105,23 +115,20 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private float[] mGravity = new float[3];
     private float[] mGeomagnetic = new float[3];
     private float mBearing = 0f;
-    private Location mPreviousLocation;
+
     private long lastUpdateTime = 0;
     DatabaseClass databaseClass;
 
-    private LatLng userLocation;
-    private String pinType;
 
-    private DatabaseClass database;
-    private int mMarkerType;
-    private int mMarkerTime;
-
+    private ProgressBar mProgressBar;
+    private FrameLayout frameL;
 
     public interface OnMarkerInfoCallback {
         void onSuccess(com.example.trafficeventsapp.Marker markerInfo);
 
         void onFailure(String error);
     }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -130,13 +137,15 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         mLastKnownLocation = new Location("");
         findViews();
         checkMyPermission();
+        databaseClass = new DatabaseClass(this);
 
-         databaseClass = new DatabaseClass(this);
+        frameL = (FrameLayout) findViewById(R.id.loading_layout);
+
         // Inicjalizacja sensora ruchu
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mMagnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-        database = new DatabaseClass();
+
 
         menuButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -197,7 +206,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         btn_traffic_accident_maker = (ImageButton) findViewById(R.id.btn_traffic_accident_maker);
         btn_police_voiture_maker = (ImageButton) findViewById(R.id.btn_police_voituer_maker);
         btn_displayCurrentDirection = (ImageButton) findViewById(R.id.btnDisplayDirection);
-
         btn_displayCurrentDirection.setOnClickListener(view -> enableDirection());
 
         btnAddMaker.setOnClickListener(this);
@@ -207,6 +215,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
 
     private void enableDirection() {
+        btn_displayCurrentDirection.setVisibility(View.GONE);
         isDirectionButtonPressed = true;
     }
 
@@ -232,22 +241,35 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 break;
         }
 
-        if (v.getId() != R.id.buttonAddMaker) {
-            new CountDownTimer(minBlckAddMaker * 10 * 1000, 1000) {
-                public void onTick(long millisUntilFinished) {
-                }
 
-                public void onFinish() {
-                    //called after minBlckAddMaker minutes
-                    setButtonsEnabled(true);
-                    lin_lay_menu.setVisibility(View.VISIBLE);
-                }
-            }.start();
-            setButtonsEnabled(false);
-            lin_lay_menu.setVisibility(View.GONE);
-
+        /*if (v.getId() != R.id.buttonAddMaker) {
+           block_events_buttons();
         }
+   */
+
+
     }
+
+    public void block_events_buttons() {
+        new CountDownTimer(minBlckAddMaker * 10 * 1000, 1000) {
+            public void onTick(long millisUntilFinished) {
+            }
+
+            public void onFinish() {
+                //called after minBlckAddMaker minutes
+                setButtonsEnabled(true);
+                btnAddMaker.setVisibility(View.VISIBLE);
+                // lin_lay_menu.setVisibility(View.VISIBLE);
+            }
+        }.start();
+        setButtonsEnabled(false);
+
+        //tutaj ustawiam przycisk z minutami
+        btnAddMaker.setVisibility(View.GONE);
+        lin_lay_menu.setVisibility(View.GONE);
+
+    }
+
 
     private void setButtonsEnabled(Boolean b) {
         btn_speed_control_maker.setEnabled(b);
@@ -279,49 +301,70 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             double latitude = location.getLatitude();
             double longitude = location.getLongitude();
             LatLng myLocation = new LatLng(latitude, longitude);
-            // int ic_red = 12;
-
-            //Bitmap imageBitmap = null, resizedBitmap = null;
             MarkerOptions markerOptions = null;
             //add markers on map
             String eventId = "";
             switch (id) {
                 case R.id.btn_speed_control_maker:
-                    //   imageBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.speed_cntrl_ic);
-                    //  resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
                     eventId = "speedcntrl";
                     break;
                 case R.id.btn_traffic_accident_maker:
-                    //  imageBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.car_cc_ic);
-                    //   resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
                     eventId = "accidnt";
                     break;
                 case R.id.btn_police_voituer_maker:
-                    //    imageBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.pol_car_ic);
-                    //  resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
                     eventId = "polivoit";
                     break;
                 default:
                     break;
             }
-
-
             GeoLocation geoLocation = new GeoLocation(latitude, longitude);
-            //markerOptions = new MarkerOptions().position(myLocation).icon(BitmapDescriptorFactory.fromBitmap(resizedBitmap));
-
-             markerOptions = new MarkerOptions().position(myLocation);
+            markerOptions = new MarkerOptions().position(myLocation);
             String idd = UUID.randomUUID().toString();
             markerOptions.title(idd);
 
             databaseClass.checkMarkersExist(markerOptions, mGoogleMap, geoLocation, eventId, new DatabaseClass.OnMarkersExistListener() {
                 @Override
-                public void onMarkerExist(boolean exist) {
-                    if (exist) {
-                        Log.e(TAG, "Istnieje");
-                        // marker istnieje
-                    } else {
-                        Log.e(TAG, "Nie istnieje");
-                        // marker nie istnieje
+                public void onMarkerExist(String callbackName, String useruid, int refreshCount) {
+                    //other event near to current localization
+                    if (callbackName.equals("event1")) {
+                        LayoutInflater inflater = getLayoutInflater();
+                        View layout = inflater.inflate(R.layout.custom_toast, (ViewGroup) findViewById(R.id.toast_layout));
+                        TextView text = (TextView) layout.findViewById(R.id.toast_text);
+                        text.setText(getResources().getString(R.string.otherevent));
+                        Toast toast = new Toast(getApplicationContext());
+                        toast.setGravity(Gravity.TOP, 0, 300);
+                        toast.setDuration(Toast.LENGTH_SHORT);
+                        toast.setView(layout);
+                        toast.show();
+                    }
+                    if (callbackName.equals("event2")) {
+                        FirebaseDatabase database = FirebaseDatabase.getInstance("https://traffic-events-app-15a65-default-rtdb.europe-west1.firebasedatabase.app/");
+                        DatabaseReference userRef = database.getReference("users").child(useruid);
+
+                        userRef.child("usere_name").addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                String username = dataSnapshot.getValue(String.class);
+
+                                LayoutInflater inflater = getLayoutInflater();
+                                View layout = inflater.inflate(R.layout.custom_toast, (ViewGroup) findViewById(R.id.toast_layout));
+                                TextView text = (TextView) layout.findViewById(R.id.toast_text);
+                                text.setText(getResources().getString(R.string.updateevent) + " " + username+"\n"+"Aktualna liczba zgłoszeń to: "+refreshCount);
+
+                                Toast toast = new Toast(getApplicationContext());
+                                toast.setGravity(Gravity.TOP, 0, 300);
+                                toast.setDuration(Toast.LENGTH_SHORT);
+                                toast.setView(layout);
+                                toast.show();
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError databaseError) {
+                                // obsługa błędu pobierania danych
+                                Log.e("TAG", "Failed to get username", databaseError.toException());
+                            }
+                        });
+                        block_events_buttons();
                     }
                 }
             });
@@ -354,14 +397,13 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     @SuppressLint("MissingPermission")
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
-
-
         mGoogleMap = googleMap;
         gmCP = googleMap;
         mGoogleMap.getUiSettings().setCompassEnabled(false);
         mGoogleMap.setPadding(0, 800, 0, 0);
         mGoogleMap.setMinZoomPreference(14.0f);
-
+        btn_displayCurrentDirection.setVisibility(View.GONE);
+        //  mNoLocationView.setVisibility(View.VISIBLE);
         enableMyLocation();
         UiSettings uiSettings = mGoogleMap.getUiSettings();
         googleMap.getUiSettings().setMyLocationButtonEnabled(false);
@@ -382,6 +424,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             public void onCameraMoveStarted(int reason) {
                 // Jeśli przycisk kierunku jazdy jest wciśnięty, ustaw wartość na false po przesunięciu kamery
                 if (reason == GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE) {
+                    btn_displayCurrentDirection.setVisibility(View.VISIBLE);
                     isDirectionButtonPressed = false;
                 }
             }
@@ -470,6 +513,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             mGoogleMap.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
                 @Override
                 public void onMyLocationChange(Location location) {
+
+                    if (frameL.getVisibility() == View.VISIBLE)
+                        frameL.setVisibility(View.GONE);
 
                     if (isDirectionButtonPressed)
                         if (location != null) {
