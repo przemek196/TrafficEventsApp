@@ -117,8 +117,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private boolean isDirectionButtonPressed = true;
     private Marker mCurrentLocationMarker;
     private Location mLastKnownLocation;
-    private Bitmap mMarkerBitmap;
-    private Marker mMarker;
     private SensorManager mSensorManager;
     private Sensor mAccelerometer;
     private Sensor mMagnetometer;
@@ -129,10 +127,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private boolean firstUpdate = false;
     private long lastUpdateTime = 0;
     DatabaseClass databaseClass;
-    //   private LayoutInflater inflater_marker_window;
     private View layout_marker_window;
-    private static final int REQUEST_HISTORY = 1;
-    private ProgressBar mProgressBar;
     private FrameLayout frameL;
     private Marker historyMarker;
 
@@ -585,8 +580,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
             }
         });
-
-        //     enableMyLocation();
     }
 
 
@@ -695,7 +688,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     @Override
     public void onPause() {
         super.onPause();
-        //   mSensorManager.unregisterListener(mSensorEventListener);
     }
 
 
