@@ -42,5 +42,5 @@
     <string name="waitforloc">Ustalam lokalizację</string>
     <string name="otherevent">Nie można dodać znacznika. W pobliżu znajduje się już inne zdarzenie</string>
     <string name="updateevent">Potwierdzono zgłoszenie użytkownika</string>
-
+    <string name="incident_history">Historia incydentów</string>
 </resources>

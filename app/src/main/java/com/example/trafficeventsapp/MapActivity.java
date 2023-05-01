@@ -3,6 +3,10 @@ package com.example.trafficeventsapp;
 
 import static android.content.ContentValues.TAG;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -12,6 +16,7 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -126,9 +131,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     DatabaseClass databaseClass;
     //   private LayoutInflater inflater_marker_window;
     private View layout_marker_window;
-
+    private static final int REQUEST_HISTORY = 1;
     private ProgressBar mProgressBar;
     private FrameLayout frameL;
+    private Marker historyMarker;
 
     public interface OnMarkerInfoCallback {
         void onSuccess(com.example.trafficeventsapp.Marker markerInfo);
@@ -171,6 +177,17 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     @Override
                     public boolean onMenuItemClick(MenuItem item) {
                         switch (item.getItemId()) {
+                            case R.id.incident_history:
+                                Intent historyIntent = new Intent(getApplicationContext(), HistoryActivity.class);
+                                if(historyMarker!=null)
+                                {
+                                    historyMarker.remove();
+                                    historyMarker=null;
+                                }
+                                mStartForResult.launch(historyIntent);
+                                // startActivityForResult(historyIntent, REQUEST_HISTORY);
+
+                                return true;
                             case R.id.menu_item_show_traffic:
                                 if (gmCP != null && !gmCP.isTrafficEnabled()) {
                                     gmCP.setTrafficEnabled(true);
@@ -204,6 +221,53 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
     }
 
+    private ActivityResultLauncher<Intent> mStartForResult = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            new ActivityResultCallback<ActivityResult>() {
+                @Override
+                public void onActivityResult(ActivityResult result) {
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        Intent data = result.getData();
+                        double latitude = data.getDoubleExtra("latitude", 0.0);
+                        double longitude = data.getDoubleExtra("longitude", 0.0);
+                        String event_id = data.getStringExtra("ev_type");
+                        btn_displayCurrentDirection.setVisibility(View.VISIBLE);
+                        isDirectionButtonPressed = false;
+
+                        LatLng location = new LatLng(latitude, longitude);
+                        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(location, 15f);
+                        mGoogleMap.moveCamera(cameraUpdate);
+
+                        Bitmap imageBitmap = null, resizedBitmap = null;
+                        int ic_red = 12;
+                        switch (event_id) {
+                            case "speedcntrl":
+                                imageBitmap = BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.speed_cntrl_ic);
+                                resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
+                                break;
+                            case "accidnt":
+                                imageBitmap = BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.car_cc_ic);
+                                resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
+                                break;
+                            case "polivoit":
+                                imageBitmap = BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.pol_car_ic);
+                                resizedBitmap = Bitmap.createScaledBitmap(imageBitmap, imageBitmap.getWidth() / ic_red, imageBitmap.getHeight() / ic_red, false);
+                                break;
+                            default:
+                                break;
+                        }
+
+                        MarkerOptions markerOptions = new MarkerOptions().title("Pin").position(location).icon(BitmapDescriptorFactory.fromBitmap(resizedBitmap));
+
+                        // Dodaj pinezkę na otrzymane współrzędne
+                        historyMarker = mGoogleMap.addMarker(markerOptions);
+
+
+                    }
+                }
+            });
+
+
     private void findViews() {
         mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.maps);
         lin_lay_menu = (LinearLayout) findViewById(R.id.linear_layout_menu);
@@ -223,8 +287,15 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
 
     private void enableDirection() {
+
+        if (historyMarker != null) {
+            historyMarker.remove();
+            historyMarker = null;
+        }
+
         btn_displayCurrentDirection.setVisibility(View.GONE);
         isDirectionButtonPressed = true;
+
     }
 
     @Override
@@ -475,10 +546,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         }
 
                         eventName.setText(eventFullName);
-                        creatorName.setText("Zgłosił: "+markerInfo.getCreatorName());
+                        creatorName.setText("Zgłosił: " + markerInfo.getCreatorName());
                         Date creatrion_date = new Date(markerInfo.getCreationTime());
                         DateFormat cr_df = new SimpleDateFormat("HH:mm");
-                        creationTime.setText("Godzina: "+cr_df.format(creatrion_date));
+                        creationTime.setText("Godzina: " + cr_df.format(creatrion_date));
 
                         long endTime = markerInfo.getExpirationTime();
 
@@ -501,9 +572,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                             }
                         };
 
-                        refreshCount.setText("Liczba potwierdzeń: "+ String.valueOf(markerInfo.getRefreshCount()));
-
-
+                        refreshCount.setText("Liczba potwierdzeń: " + String.valueOf(markerInfo.getRefreshCount()));
                         layout_marker_window.setVisibility(View.VISIBLE);
                     }
 
@@ -570,20 +639,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
                             LatLng shadowTgt = SphericalUtil.computeOffset(newPos, offsetDistance, bearing);
 
-                            // update circles
-                           /* if (centerCircle != null) {
-                                centerCircle.setCenter(shadowTgt);
-                            } else {
-                                centerCircle = mGoogleMap.addCircle(new CircleOptions().strokeColor(Color.BLUE).center(shadowTgt).radius(50));
-                            }
-                            if (carCircle != null) {
-                                carCircle.setCenter(newPos);
-                            } else {
-                                carCircle = mGoogleMap.addCircle(new CircleOptions().strokeColor(Color.GREEN).center(newPos).radius(50));
-                            }*/
-
-
-                            // update camera
 
                             CameraPosition.Builder b = CameraPosition.builder();
                             b.zoom(15.0F);
@@ -635,8 +690,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     @Override
     public void onResume() {
         super.onResume();
-        // mSensorManager.registerListener(mSensorEventListener, mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
-        // mSensorManager.registerListener(mSensorEventListener, mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD), SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     @Override

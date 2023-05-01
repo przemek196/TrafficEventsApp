@@ -106,20 +106,27 @@ public class DatabaseClass {
 // Zapisywanie dodatkowych informacji o pinezce w Firebase Realtime Database
         DatabaseReference pinRef = database.getReference("markers").child(markerOptions.getTitle());
         pinRef.setValue(pin);
+
+        //zapisywanie pinezki do histoii dodanych zdarzeń
+        //event_id
+        //data dodania
+        //Liczba odświeżeń 1
+
+
+
     }
 
 
     public void updateGeoQuery(Location location, GoogleMap mGoogleMap) {
+
         // Utwórz nową GeoQuery z nowymi parametrami lokalizacji i promienia.
         GeoFire geoFire = new GeoFire(ref);
         geoQuery = geoFire.queryAtLocation(new GeoLocation(location.getLatitude(), location.getLongitude()), radiusInKm);
-
-
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
             @Override
             public void onKeyEntered(String key, GeoLocation location) {
 
-                List<DataSnapshot> dataSnapshotList = new ArrayList<>();
+              //  List<DataSnapshot> dataSnapshotList = new ArrayList<>();
                 DatabaseReference markerRef = markersRef.child(key);
                 markerRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
@@ -173,7 +180,7 @@ public class DatabaseClass {
 
                                 //sprawdzam czy mam taki marker na mapie
                                 for (com.google.android.gms.maps.model.Marker m : markersList) {
-                                    if (m.getTitle().equals(dataSnapshot.getKey())) { //jeżeli istnieje to znaczy, że taki marker już jest na mapie
+                                    if (m.getTitle().equals(dataSnapshot.getKey())) {
                                         markExistOnMap = true;
                                         break;
                                     }
@@ -278,13 +285,12 @@ public class DatabaseClass {
 
         //DatabaseReference geofire = database.getReference("geofire");
         GeoFire geoFire = new GeoFire(ref);
-        GeoQuery geoQuery = geoFire.queryAtLocation(geoLocation, 1.0); // promień 1km
+        GeoQuery geoQuery = geoFire.queryAtLocation(geoLocation, 1.0);
 
         // zmienna przechowująca informację o tym, czy już wystąpiła pinezka w pobliżu
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
             boolean anyMarkerExist = false;
             boolean exist = false;
-
 
             @Override
             public void onKeyEntered(String key, GeoLocation location) {

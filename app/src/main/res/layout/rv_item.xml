@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_margin="5dp"
+    >
+
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="105dp"
+        android:background="@drawable/button_background">
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cv_im_view"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginLeft="20dp"
+            android:layout_marginTop="20dp"
+            app:cardCornerRadius="60dp">
+
+            <ImageView
+                android:id="@+id/im_view_hist"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/car_cc_ic"></ImageView>
+
+        </androidx.cardview.widget.CardView>
+
+        <TextView
+            android:id="@+id/rv_tv_event_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="20dp"
+            android:layout_marginTop="20dp"
+            android:layout_toRightOf="@id/cv_im_view"
+            android:text="Zdarzenie drogowe"
+            android:textSize="16sp"
+            android:textStyle="bold"></TextView>
+
+        <TextView
+            android:id="@+id/rv_tv_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/rv_tv_event_name"
+            android:layout_marginLeft="20dp"
+            android:layout_marginTop="3dp"
+            android:layout_toRightOf="@id/cv_im_view"
+            android:text="Data: 22.04.2023"
+            android:textSize="14sp"></TextView>
+
+        <TextView
+            android:id="@+id/rv_tv_count_conf"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/rv_tv_date"
+            android:layout_marginLeft="20dp"
+            android:layout_marginTop="3dp"
+            android:layout_toRightOf="@id/cv_im_view"
+            android:text="Liczba potwierdzień: 10"
+            android:textSize="14sp"></TextView>
+
+
+        <ImageView
+            android:id="@+id/delete_item"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="30dp"
+            android:src="@drawable/ic_trash"
+         ></ImageView>
+
+
+
+    </RelativeLayout>
+
+
+</RelativeLayout>

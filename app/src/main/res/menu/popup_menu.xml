@@ -1,6 +1,10 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
+        android:id="@+id/incident_history"
+        android:title="@string/incident_history" />
+    <item
         android:id="@+id/menu_item_show_traffic"
+        android:title="@string/show_traffic" />
         />
     <item
         android:id="@+id/menu_item_logout"
