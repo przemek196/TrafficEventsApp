@@ -71,7 +71,6 @@ public class HistoryActivity extends AppCompatActivity implements OnItemClickLis
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
 
-
                 for (DataSnapshot dsnap : snapshot.getChildren()) {
                     String folderName = dsnap.getKey();
                     DatabaseReference dbFolderRef = historyRef.child(folderName);
@@ -80,7 +79,6 @@ public class HistoryActivity extends AppCompatActivity implements OnItemClickLis
                         public void onDataChange(@NonNull DataSnapshot snapshot) {
 
                             String eventID = snapshot.child("eventID").getValue(String.class);
-
                             long milliseconds = snapshot.child("creationTime").getValue(long.class);
                             Date date = new Date(milliseconds);
                             SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy HH:mm");
@@ -91,13 +89,13 @@ public class HistoryActivity extends AppCompatActivity implements OnItemClickLis
 
                             switch (eventID) {
                                 case "speedcntrl":
-                                    events_list.add(new EventModel(R.drawable.ic_map_speed, "Kontrola drogowa", dateString, "Potwierdzenia: "+ String.valueOf(conf_count), latitude, longlatitude,eventID));
+                                    events_list.add(new EventModel(eventID, R.drawable.ic_speed_hist, "Kontrola drogowa", dateString, "Potwierdzenia: " + String.valueOf(conf_count), latitude, longlatitude, snapshot.getKey()));
                                     break;
                                 case "accidnt":
-                                    events_list.add(new EventModel(R.drawable.ic_car_accident, "Zdarzenie drogowe", dateString, "Potwierdzenia: "+ String.valueOf(conf_count), latitude, longlatitude,eventID));
+                                    events_list.add(new EventModel(eventID, R.drawable.ic_crash_hist, "Zdarzenie drogowe", dateString, "Potwierdzenia: " + String.valueOf(conf_count), latitude, longlatitude, snapshot.getKey()));
                                     break;
                                 case "polivoit":
-                                    events_list.add(new EventModel(R.drawable.ic_voiture_the_police, "Radiowóz policyjny", dateString, "Potwierdzenia: "+ String.valueOf(conf_count), latitude, longlatitude,eventID));
+                                    events_list.add(new EventModel(eventID, R.drawable.ic_car_hist, "Radiowóz policyjny", dateString, "Potwierdzenia: " + String.valueOf(conf_count), latitude, longlatitude, snapshot.getKey()));
                                     break;
                                 default:
                                     break;
@@ -111,6 +109,7 @@ public class HistoryActivity extends AppCompatActivity implements OnItemClickLis
                     });
                 }
             }
+
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
             }
@@ -131,7 +130,7 @@ public class HistoryActivity extends AppCompatActivity implements OnItemClickLis
     public void onItemClick(int position) {
         double latitude = events_list.get(position).getLatitude();
         double longitude = events_list.get(position).getLonglatitude();
-        String ev_type = events_list.get(position).getHist_key();
+        String ev_type = events_list.get(position).getEvent_name();
 
         Intent resultIntent = new Intent();
         resultIntent.putExtra("latitude", latitude);

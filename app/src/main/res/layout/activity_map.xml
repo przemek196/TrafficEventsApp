@@ -1,41 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:map="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    xmlns:map="http://schemas.android.com/tools">
+    android:layout_height="match_parent">
 
-
-    <fragment
+    <com.google.android.gms.maps.MapView
         android:id="@+id/maps"
         class="com.google.android.gms.maps.SupportMapFragment"
-        map:mapType="normal"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        map:mapType="normal" />
 
     <include
         layout="@layout/marker_info_window"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:visibility="gone"
+        android:layout_marginLeft="15dp"
         android:layout_marginTop="80dp"
-        android:layout_marginLeft="15dp"/>
+        android:visibility="gone" />
 
     <!-- pozostała część głównego layoutu -->
-
-
     <FrameLayout
         android:id="@+id/loading_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#0F1313"
-        android:visibility="visible"
-        android:gravity="center">
+        android:gravity="center"
+        android:visibility="visible">
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_gravity="center">
+            android:layout_gravity="center"
+            android:orientation="vertical">
 
             <TextView
                 android:id="@+id/loading_text"
@@ -47,14 +45,25 @@
             <ProgressBar
                 android:id="@+id/progress_bar"
                 android:layout_width="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="30dp"
                 android:layout_height="wrap_content"
                 android:layout_below="@+id/loading_text"
-                android:layout_centerHorizontal="true" />
+                android:layout_centerHorizontal="true"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="30dp" />
         </LinearLayout>
     </FrameLayout>
 
+    <Button
+        android:id="@+id/button_confirm_event"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_marginTop="250dp"
+        android:layout_marginLeft="20dp"
+        android:background="@drawable/button_background_event_conf"
+        android:text="Czy chcesz potwierdzić zdarzenie?"
+        android:textSize="12sp"
+        android:visibility="visible" />
 
     <ImageButton
         android:id="@+id/btnDisplayDirection"
@@ -66,73 +75,118 @@
         android:background="@drawable/displayloc_icon"
         android:padding="8dp" />
 
-
     <ImageButton
         android:id="@+id/menu_button"
         android:layout_width="30dp"
         android:layout_height="30dp"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
-        android:layout_margin="20dp"
-        android:background="@drawable/ic_menu"
-        android:padding="16dp" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="30dp"
-        android:orientation="vertical">
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/ic_baseline_menu_24"
+        android:padding="16dp"
+        map:ignore="TouchTargetSizeCheck" />
 
 
-        <LinearLayout
-            android:id="@+id/linear_layout_menu"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/addFab"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:visibility="gone">
+            android:layout_margin="16dp"
+            android:text="Dodaj zdarzenie"
+            android:textSize="10sp"
+            app:icon="@drawable/action"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
+        <!--Speed Control Add FAB -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/speedFab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="14dp"
+            android:backgroundTint="@color/my_fab_color"
+            android:src="@drawable/ic_baseline_speed_24"
+            android:visibility="invisible"
+            app:fabSize="normal"
+            app:layout_constraintBottom_toTopOf="@id/addFab"
+            app:layout_constraintEnd_toEndOf="@id/addFab" />
 
-            <ImageButton
-                android:id="@+id/btn_speed_control_maker"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:layout_marginHorizontal="10dp"
-                android:background="@drawable/speed_cntrl_ic"></ImageButton>
+        <TextView
+            android:id="@+id/speedFabText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/text_view_background"
+            android:text="Kontrola prędkości"
+            android:textColor="@color/white"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="@id/speedFab"
+            app:layout_constraintEnd_toStartOf="@id/speedFab"
+            app:layout_constraintTop_toTopOf="@id/speedFab" />
+        <!-- END Speed Control Add FAB -->
 
-            <ImageButton
-                android:id="@+id/btn_traffic_accident_maker"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:layout_marginHorizontal="10dp"
-                android:background="@drawable/car_cc_ic"></ImageButton>
+        <!--Accident FAB -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/accidentFab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="14dp"
+            android:backgroundTint="@color/my_fab_color"
+            android:src="@drawable/ic_baseline_car_crash_24"
+            android:visibility="invisible"
+            app:fabSize="normal"
+            app:layout_constraintBottom_toTopOf="@id/speedFab"
+            app:layout_constraintEnd_toEndOf="@id/speedFab" />
 
-            <ImageButton
-                android:id="@+id/btn_police_voituer_maker"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:layout_marginHorizontal="10dp"
-                android:background="@drawable/pol_car_ic"></ImageButton>
-        </LinearLayout>
+        <TextView
+            android:id="@+id/accidentFabText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/text_view_background"
+            android:text="Wypadek"
+            android:textColor="@color/white"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="@id/accidentFab"
+            app:layout_constraintEnd_toStartOf="@id/accidentFab"
+            app:layout_constraintTop_toTopOf="@id/accidentFab" />
+        <!-- END Accident FAB -->
 
-        <View
-            android:id="@+id/bottom_sheet"
-            android:layout_width="200dp"
-            android:layout_height="30dp"
-            android:background="#ffffff"
-            android:elevation="4dp"
-            android:visibility="gone" />
+        <!--Polcice Car FAB -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/polCarFab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="14dp"
+            android:backgroundTint="@color/my_fab_color"
+            android:src="@drawable/ic_baseline_local_police_24"
+            android:textSize="10sp"
+            android:visibility="invisible"
+            app:fabSize="normal"
+            app:layout_constraintBottom_toTopOf="@id/accidentFab"
+            app:layout_constraintEnd_toEndOf="@id/accidentFab" />
 
-
-        <ImageButton
-            android:id="@+id/buttonAddMaker"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:layout_gravity="center_horizontal"
-            android:background="@drawable/add_ic"></ImageButton>
-
-    </LinearLayout>
+        <TextView
+            android:id="@+id/polCarFabText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/text_view_background"
+            android:text="Radiowóz"
+            android:textColor="@color/white"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="@id/polCarFab"
+            app:layout_constraintEnd_toStartOf="@id/polCarFab"
+            app:layout_constraintTop_toTopOf="@id/polCarFab" />
+        <!-- END Polcice Car FAB -->
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </RelativeLayout>
 

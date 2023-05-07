@@ -43,4 +43,6 @@
     <string name="otherevent">Nie można dodać znacznika. W pobliżu znajduje się już inne zdarzenie</string>
     <string name="updateevent">Potwierdzono zgłoszenie użytkownika</string>
     <string name="incident_history">Historia incydentów</string>
+    <string name="new_event_adaed">Dodano nowe zdarzenie.</string>
+    <string name="czy_chcesz_potwierdzi_zdarzenie">Czy chcesz potwierdzić zdarzenie?</string>
 </resources>

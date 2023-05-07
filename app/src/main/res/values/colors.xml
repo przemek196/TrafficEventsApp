@@ -21,9 +21,8 @@
     <color name="borderColor">#D6D4D4</color>
     <color name="btnBacgroundColor">#9739733C</color>
     <color name="btnRegisterColorBackGround">#436B8A</color>
-
-
-
+    <color name="my_fab_color">#4CAF50</color>
+    <color name="blocked_color">#6B6B6B</color>
 
 
 </resources>

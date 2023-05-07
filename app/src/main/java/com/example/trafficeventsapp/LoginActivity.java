@@ -74,6 +74,7 @@ public class LoginActivity extends AppCompatActivity {
         String email = editTextEmail.getText().toString();
         String password = editTextPassword.getText().toString();
 
+        FirebaseAuth.getInstance().signOut();
         if (validationEmailPassword(email, password))
             mAuth.signInWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                 @Override
@@ -135,10 +136,36 @@ public class LoginActivity extends AppCompatActivity {
         dialogBuilder = new AlertDialog.Builder(this);
         final View popup_view = getLayoutInflater().inflate(R.layout.popup_remindpass, null);
 
+
+        EditText editText = popup_view.findViewById(R.id.editTextTextEmailAddress);
+        Button button = popup_view.findViewById(R.id.buttonRemindPassword);
+
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String emailAddress = editText.getText().toString();
+                if (emailAddress.isEmpty()) {
+                    editText.setError("Wpisz adres e-mail");
+                    return;
+                }
+
+                mAuth.getInstance().sendPasswordResetEmail(emailAddress)
+                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                                if (task.isSuccessful()) {
+                                    Toast.makeText(LoginActivity.this, "Wysłano e-mail umożliwiający resetowanie hasła", Toast.LENGTH_SHORT).show();
+                                    dialog.dismiss();
+                                } else {
+                                    Toast.makeText(LoginActivity.this, "Nie znaleziono konta powiązanego z tym adresem e-mail", Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        });
+            }
+        });
+
         dialogBuilder.setView(popup_view);
         dialog = dialogBuilder.create();
         dialog.show();
     }
-
-
 }

@@ -56,6 +56,7 @@ public class DatabaseClass {
     private boolean markerExist = false;
     private final int timeMarkerSpeedCntrl = 1;
     private ArrayList<com.google.android.gms.maps.model.Marker> markersList;
+    private boolean markerAded = false;
 
 
     public interface OnMarkersExistListener {
@@ -103,16 +104,9 @@ public class DatabaseClass {
             }
         });
 
-// Zapisywanie dodatkowych informacji o pinezce w Firebase Realtime Database
+
         DatabaseReference pinRef = database.getReference("markers").child(markerOptions.getTitle());
         pinRef.setValue(pin);
-
-        //zapisywanie pinezki do histoii dodanych zdarzeń
-        //event_id
-        //data dodania
-        //Liczba odświeżeń 1
-
-
 
     }
 
@@ -126,7 +120,7 @@ public class DatabaseClass {
             @Override
             public void onKeyEntered(String key, GeoLocation location) {
 
-              //  List<DataSnapshot> dataSnapshotList = new ArrayList<>();
+                //  List<DataSnapshot> dataSnapshotList = new ArrayList<>();
                 DatabaseReference markerRef = markersRef.child(key);
                 markerRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
@@ -277,84 +271,6 @@ public class DatabaseClass {
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 callback.onFailure(databaseError.getMessage());
-            }
-        });
-    }
-
-    public void checkMarkersExist(MarkerOptions markerOptions, GoogleMap mGoogleMap, GeoLocation geoLocation, String eventId, OnMarkersExistListener listener) {
-
-        //DatabaseReference geofire = database.getReference("geofire");
-        GeoFire geoFire = new GeoFire(ref);
-        GeoQuery geoQuery = geoFire.queryAtLocation(geoLocation, 1.0);
-
-        // zmienna przechowująca informację o tym, czy już wystąpiła pinezka w pobliżu
-        geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
-            boolean anyMarkerExist = false;
-            boolean exist = false;
-
-            @Override
-            public void onKeyEntered(String key, GeoLocation location) {
-                DatabaseReference markerRef = markersRef.child(key);
-                anyMarkerExist = true;
-
-                markerRef.addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                        if (dataSnapshot.exists()) {
-                            markerExist = true; // zmiana wartości zmiennej na true w przypadku wystąpienia pinezki
-
-                            String evID = dataSnapshot.child("eventID").getValue(String.class);
-                            if (evID.equals(eventId) && !markerOptions.getTitle().equals(key)) {
-                                int refCount = dataSnapshot.child("refreshCount").getValue(int.class);
-                                refCount++;
-                                DatabaseReference ref = dataSnapshot.getRef();
-                                ref.child("refreshCount").setValue(refCount);
-                                Calendar cal = Calendar.getInstance();
-                                if (eventId.equals("speedcntrl") || eventId.equals("accidnt")) {
-                                    cal.add(Calendar.MINUTE, timeMarkerSpeedCntrl);
-                                } else {
-                                    cal.add(Calendar.MINUTE, 5);
-                                }
-                                long expirationTime = cal.getTimeInMillis();
-                                ref.child("expirationTime").setValue(expirationTime);
-                                listener.onMarkerExist("event2", dataSnapshot.child("creator").getValue(String.class),refCount);
-                            } else {
-                                //tutaj trzeba nie blokować przycisku i zwrócić informacje o tym, że inne zdarzenie jest w pobliżu
-                                listener.onMarkerExist("event1", "",0);
-                            }
-
-                        } else {
-                            Log.e(TAG, "Koniec rekordów");
-                        }
-                    }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError databaseError) {
-                        Log.e(TAG, "Failed to check markers exist: " + databaseError.getMessage());
-                    }
-                });
-            }
-
-            @Override
-            public void onKeyExited(String key) {
-                // do nothing
-            }
-
-            @Override
-            public void onKeyMoved(String key, GeoLocation location) {
-                // do nothing
-            }
-
-            @Override
-            public void onGeoQueryReady() {
-                if (!anyMarkerExist) {
-                    addMakerToDatabase(markerOptions, eventId);
-                }
-            }
-
-            @Override
-            public void onGeoQueryError(DatabaseError error) {
-                Log.e(TAG, "Failed to check markers exist: " + error.getMessage());
             }
         });
     }

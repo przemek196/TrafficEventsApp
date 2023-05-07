@@ -4,6 +4,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 
 public class EventModel {
+    private String event_name;
     private String hist_key;
     private int imageView;
     private String eventType;
@@ -13,7 +14,8 @@ public class EventModel {
     private double longlatitude;
 
 
-    public EventModel(int imageView, String eventType, String eventDate, String eventConfirmationCount, double latitude, double longlatitude,String hist_key) {
+    public EventModel(String event_name,int imageView, String eventType, String eventDate, String eventConfirmationCount, double latitude, double longlatitude,String hist_key) {
+        this.event_name = event_name;
         this.imageView = imageView;
         this.eventType = eventType;
         this.eventDate = eventDate;
@@ -21,6 +23,14 @@ public class EventModel {
         this.latitude = latitude;
         this.longlatitude = longlatitude;
         this.hist_key = hist_key;
+    }
+
+    public String getEvent_name() {
+        return event_name;
+    }
+
+    public void setEvent_name(String event_name) {
+        this.event_name = event_name;
     }
 
     public int getImageView() {
