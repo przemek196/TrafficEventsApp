@@ -13,13 +13,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import org.w3c.dom.Text;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class EventAdapter extends RecyclerView.Adapter<EventAdapter.ViewHolder> {
-
     private List<EventModel> events_list;
     private OnItemClickListener listener;
-
     public EventAdapter(List<EventModel> events, OnItemClickListener listener) {
         this.events_list = events;
         this.listener = listener;
@@ -93,14 +93,11 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.ViewHolder> 
             });
 
         }
-
         public void setData(int resource, String ev_name, String ev_date, String conf_count) {
             imageView.setImageResource(resource);
             tv_ev_name.setText(ev_name);
             tv_ev_date.setText(ev_date);
             tv_ev_conf_count.setText(String.valueOf(conf_count));
         }
-
-
     }
 }

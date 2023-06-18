@@ -10,7 +10,7 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="105dp"
-        android:background="@drawable/button_background">
+        android:background="@drawable/recycler_view_background">
 
         <androidx.cardview.widget.CardView
             android:id="@+id/cv_im_view"
@@ -18,14 +18,15 @@
             android:layout_height="60dp"
             android:layout_marginLeft="20dp"
             android:layout_marginTop="20dp"
-            app:cardCornerRadius="60dp">
+            app:cardCornerRadius="60dp"
+            >
 
             <ImageView
                 android:id="@+id/im_view_hist"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_speed_hist"></ImageView>
+                android:scaleType="center"
+                android:src="@drawable/ic_baseline_speed_24"></ImageView>
 
         </androidx.cardview.widget.CardView>
 

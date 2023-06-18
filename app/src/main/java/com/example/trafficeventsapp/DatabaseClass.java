@@ -56,6 +56,7 @@ public class DatabaseClass {
     private boolean markerExist = false;
     private final int timeMarkerSpeedCntrl = 1;
     private ArrayList<com.google.android.gms.maps.model.Marker> markersList;
+
     private boolean markerAded = false;
 
 
@@ -86,11 +87,12 @@ public class DatabaseClass {
 
         GeoFire geoFire = new GeoFire(ref);
         long currentTimestamp = System.currentTimeMillis();
-        long minInMls = timeMarkerSpeedCntrl * 60 * 1000; //marker spped control and accident time
+        long minInMls = timeMarkerSpeedCntrl * 180 * 1000;
         if (eventId.equals("polivoit")) {
-            minInMls = 5 * 60 * 1000; //police car marker
+            minInMls = 3 * 60 * 1000; //police car marker
         }
         Marker pin = new Marker(eventId, mAuth.getCurrentUser().getUid(), currentTimestamp, currentTimestamp + minInMls, 1);
+
 
 // Zapisywanie obiektu w Geofire pod określonym kluczem (markerId) i z określoną lokalizacją (lat, lng)
         geoFire.setLocation(markerOptions.getTitle(), new GeoLocation(markerOptions.getPosition().latitude, markerOptions.getPosition().longitude), new GeoFire.CompletionListener() {
@@ -113,7 +115,6 @@ public class DatabaseClass {
 
     public void updateGeoQuery(Location location, GoogleMap mGoogleMap) {
 
-        // Utwórz nową GeoQuery z nowymi parametrami lokalizacji i promienia.
         GeoFire geoFire = new GeoFire(ref);
         geoQuery = geoFire.queryAtLocation(new GeoLocation(location.getLatitude(), location.getLongitude()), radiusInKm);
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
@@ -121,14 +122,16 @@ public class DatabaseClass {
             public void onKeyEntered(String key, GeoLocation location) {
 
                 //  List<DataSnapshot> dataSnapshotList = new ArrayList<>();
+
                 DatabaseReference markerRef = markersRef.child(key);
                 markerRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                         if (dataSnapshot.exists()) {
                             // Pobierz wartość pola "eventId" z DataSnapshot
+
                             String eventID = dataSnapshot.child("eventID").getValue(String.class);
-                            Log.d(TAG, "Wartość pola eventI dla markera " + dataSnapshot.getValue() + " wynosi: " + eventID);
+                            Log.d(TAG, "Wartość pola eventID dla markera " + dataSnapshot.getValue() + " wynosi: " + eventID);
 
                             LatLng latLng = new LatLng(location.latitude, location.longitude);
 

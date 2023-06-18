@@ -10,7 +10,6 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -52,6 +51,10 @@ import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
 import com.firebase.geofire.GeoQuery;
@@ -59,7 +62,6 @@ import com.firebase.geofire.GeoQueryEventListener;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.Projection;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -70,9 +72,12 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -86,9 +91,15 @@ import com.karumi.dexter.listener.PermissionGrantedResponse;
 import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.single.PermissionListener;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 
@@ -96,7 +107,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
 
     private SupportMapFragment mapFragment;
-    private MapView mapView;
     private GoogleMap mGoogleMap;
     private LocationManager locationManager;
     private LocationListener locationListener;
@@ -137,7 +147,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private boolean isMarkersNearFinded;
     private MarkerOptions cpMarkerOptions;
     private String cpEventId;
-private boolean isNorificationShow,isMarkersAded;
+    private boolean isNorificationShow, isMarkersAded;
+    private String cpEvId;
+    private int cpNewCount;
+
     public interface OnMarkerInfoCallback {
         void onSuccess(com.example.trafficeventsapp.Marker markerInfo);
 
@@ -168,7 +181,7 @@ private boolean isNorificationShow,isMarkersAded;
         menuButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                PopupMenu popup = new PopupMenu(MapActivity.this, menuButton);
+                PopupMenu popup = new PopupMenu(getApplicationContext(), menuButton);
                 popup.getMenuInflater().inflate(R.menu.popup_menu, popup.getMenu());
 
                 if (gmCP.isTrafficEnabled()) {
@@ -207,10 +220,72 @@ private boolean isNorificationShow,isMarkersAded;
                                             public void onClick(DialogInterface dialog, int which) {
                                                 FirebaseAuth mAuth = FirebaseAuth.getInstance();
                                                 mAuth.signOut();
-                                                startActivity(new Intent(MapActivity.this, LoginActivity.class));
+                                                Intent intent = new Intent(MapActivity.this, LoginActivity.class);
+                                                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                                startActivity(intent);
+                                                finishAffinity();
                                             }
                                         })
                                         .setNegativeButton("Nie", null)
+                                        .setNeutralButton("Usuń konto", new DialogInterface.OnClickListener() {
+                                            @Override
+                                            public void onClick(DialogInterface dialog, int which) {
+                                                new AlertDialog.Builder(MapActivity.this)
+                                                        .setTitle("Usunięcie konta")
+                                                        .setMessage("Czy na pewno chcesz usunąć konto? Wszystkie dane z nim związane zostaną usunięte.")
+                                                        .setPositiveButton("Tak", new DialogInterface.OnClickListener() {
+                                                            @Override
+                                                            public void onClick(DialogInterface dialog, int which) {
+                                                                FirebaseAuth mAuth = FirebaseAuth.getInstance();
+                                                                FirebaseUser user = mAuth.getCurrentUser();
+                                                                if (user != null) {
+                                                                    String userId = user.getUid();
+                                                                    DatabaseReference usersRef = database.getReference().child("users").child(userId);
+                                                                    usersRef.removeValue()
+                                                                            .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                                @Override
+                                                                                public void onSuccess(Void aVoid) {
+                                                                                    user.delete()
+                                                                                            .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                                                @Override
+                                                                                                public void onSuccess(Void unused) {
+                                                                                                    Intent intent = new Intent(MapActivity.this, LoginActivity.class);
+                                                                                                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                                                                                    startActivity(intent);
+                                                                                                    finishAffinity();
+                                                                                                }
+                                                                                            })
+                                                                                            .addOnFailureListener(new OnFailureListener() {
+                                                                                                @Override
+                                                                                                public void onFailure(@NonNull Exception e) {
+                                                                                                    //last login expired
+                                                                                                    LayoutInflater inflater = getLayoutInflater();
+                                                                                                    View layout = inflater.inflate(R.layout.custom_toast, (ViewGroup) findViewById(R.id.toast_layout));
+                                                                                                    TextView text = (TextView) layout.findViewById(R.id.toast_text);
+                                                                                                    text.setText(getResources().getString(R.string.last_login_expired));
+                                                                                                    Toast toast = new Toast(getApplicationContext());
+                                                                                                    toast.setGravity(Gravity.TOP, 0, 300);
+                                                                                                    toast.setDuration(Toast.LENGTH_SHORT);
+                                                                                                    toast.setView(layout);
+                                                                                                    toast.show();
+
+                                                                                                }
+                                                                                            });
+                                                                                }
+                                                                            })
+                                                                            .addOnFailureListener(new OnFailureListener() {
+                                                                                @Override
+                                                                                public void onFailure(@NonNull Exception e) {
+                                                                                    // Obsłuż błąd usuwania gałęzi związanej z użytkownikiem
+                                                                                }
+                                                                            });
+                                                                }
+                                                            }
+                                                        })
+                                                        .setNegativeButton("Nie", null)
+                                                        .show();
+                                            }
+                                        })
                                         .show();
                                 return true;
                         }
@@ -221,7 +296,7 @@ private boolean isNorificationShow,isMarkersAded;
             }
         });
 
-        mapView.getMapAsync(this);
+        mapFragment.getMapAsync(this);
     }
 
 
@@ -344,8 +419,8 @@ private boolean isNorificationShow,isMarkersAded;
 
 
     private void findViews() {
-      //  mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.maps);
-       mapView = (MapView) findViewById(R.id.maps);
+        mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.maps);
+        //  mapView = (MapView) findViewById(R.id.maps);
         confirm_event_button = (Button) findViewById(R.id.button_confirm_event);
         menuButton = findViewById(R.id.menu_button);
         btn_displayCurrentDirection = (ImageButton) findViewById(R.id.btnDisplayDirection);
@@ -369,7 +444,7 @@ private boolean isNorificationShow,isMarkersAded;
         fabAdd.setTextColor(Color.BLACK);
         isOpen = true;
         animateFab();
-        new CountDownTimer(minBlckAddMaker * 60 * 1000, 1000) {
+        new CountDownTimer(minBlckAddMaker * 200 * 1000, 1000) {
             public void onTick(long millisUntilFinished) {
                 // ustawienie czasu do końca blokady na przycisku
                 fabAdd.setText("Blokada przez:" + millisUntilFinished / 1000 + "s");
@@ -429,21 +504,18 @@ private boolean isNorificationShow,isMarkersAded;
                 @Override
                 public void onKeyEntered(String key, GeoLocation location) {
                     isMarkersNearFinded = true;
-
-               if(!isNorificationShow && !isMarkersAded)
-               {
-                   LayoutInflater inflater = getLayoutInflater();
-                   View layout = inflater.inflate(R.layout.custom_toast, (ViewGroup) findViewById(R.id.toast_layout));
-                   TextView text = (TextView) layout.findViewById(R.id.toast_text);
-                   text.setText(getResources().getString(R.string.otherevent));
-                   Toast toast = new Toast(getApplicationContext());
-                   toast.setGravity(Gravity.TOP, 0, 300);
-                   toast.setDuration(Toast.LENGTH_SHORT);
-                   toast.setView(layout);
-                   toast.show();
-
-                   isNorificationShow=true;
-               }
+                    if (!isNorificationShow && !isMarkersAded) {
+                        LayoutInflater inflater = getLayoutInflater();
+                        View layout = inflater.inflate(R.layout.custom_toast, (ViewGroup) findViewById(R.id.toast_layout));
+                        TextView text = (TextView) layout.findViewById(R.id.toast_text);
+                        text.setText(getResources().getString(R.string.otherevent));
+                        Toast toast = new Toast(getApplicationContext());
+                        toast.setGravity(Gravity.TOP, 0, 300);
+                        toast.setDuration(Toast.LENGTH_SHORT);
+                        toast.setView(layout);
+                        toast.show();
+                        isNorificationShow = true;
+                    }
                 }
 
                 @Override
@@ -460,6 +532,8 @@ private boolean isNorificationShow,isMarkersAded;
                 public void onGeoQueryReady() {
                     if (!isMarkersNearFinded) {
                         databaseClass.addMakerToDatabase(cpMarkerOptions, cpEventId);
+                        isMarkersAded = true;
+
 
                         LayoutInflater inflater = getLayoutInflater();
                         View layout = inflater.inflate(R.layout.custom_toast, (ViewGroup) findViewById(R.id.toast_layout));
@@ -471,8 +545,6 @@ private boolean isNorificationShow,isMarkersAded;
                         toast.setView(layout);
                         toast.show();
                         block_events_buttons();
-
-                        isMarkersAded=true;
                     }
                 }
 
@@ -481,19 +553,6 @@ private boolean isNorificationShow,isMarkersAded;
 
                 }
             });
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
          /*   databaseClass.checkMarkersExist(markerOptions, mGoogleMap, geoLocation, eventId, new DatabaseClass.OnMarkersExistListener() {
@@ -599,7 +658,7 @@ private boolean isNorificationShow,isMarkersAded;
                         TextView creationTime = layout_marker_window.findViewById(R.id.hour_desc);
                         TextView creatorName = layout_marker_window.findViewById(R.id.user_desc);
                         TextView refreshCount = layout_marker_window.findViewById(R.id.confirm_desc);
-
+                        TextView reaming_time = layout_marker_window.findViewById(R.id.reaming_time);
 
                         String eventFullName = "";
 
@@ -625,6 +684,7 @@ private boolean isNorificationShow,isMarkersAded;
 
                         long endTime = markerInfo.getExpirationTime();
 
+
                         Handler handler = new Handler();
                         Runnable runnable = new Runnable() {
                             @Override
@@ -633,17 +693,18 @@ private boolean isNorificationShow,isMarkersAded;
                                 long remainingTime = (endTime - currentTime) / 1000;
 
                                 if (remainingTime <= 0) {
-                                    //  expireTime.setText("Czas minął");
+                                    reaming_time.setText("Czas minął");
                                 } else {
                                     long hours = remainingTime / 3600;
                                     long minutes = (remainingTime % 3600) / 60;
                                     long seconds = remainingTime % 60;
-                                    //  expireTime.setText(String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds));
+                                    reaming_time.setText("Wygaśnie za: " + String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
                                     handler.postDelayed(this, 1000);
                                 }
                             }
                         };
 
+                        runnable.run();
                         refreshCount.setText("Liczba potwierdzeń: " + String.valueOf(markerInfo.getRefreshCount()));
                         layout_marker_window.setVisibility(View.VISIBLE);
                     }
@@ -721,7 +782,7 @@ private boolean isNorificationShow,isMarkersAded;
                             lastLocation = location;
 
                             long currentTime = System.currentTimeMillis();
-                            if (currentTime - lastUpdateTime > 20000) { // time litmit to check markers
+                            if (currentTime - lastUpdateTime > 20000) {
                                 databaseClass.updateGeoQuery(location, mGoogleMap);
                                 lastUpdateTime = currentTime;
                             }
@@ -763,9 +824,28 @@ private boolean isNorificationShow,isMarkersAded;
                                         markerRef.child("refreshCount").setValue(newCount);
                                         // Schowaj przycisk potwierdzenia
                                         confirm_event_button.setVisibility(View.GONE);
+                                        cpEvId = snapshot.child("eventID").getValue(String.class);
+                                        //send notification to user
+
+                                        DatabaseReference userRef = database.getReference("users").child(creator);
+                                        cpNewCount = newCount;
+                                        userRef.child("registrationToken").addListenerForSingleValueEvent(new ValueEventListener() {
+                                            @Override
+                                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                                String recipientToken = dataSnapshot.getValue(String.class);
+
+                                                // Tutaj możesz wysłać powiadomienie do użytkownika o otrzymaniu potwierdzenia zdarzenia
+                                                sendNotification(recipientToken, String.valueOf(cpNewCount), "potwierdzenie", cpEvId);
+                                            }
+
+                                            @Override
+                                            public void onCancelled(@NonNull DatabaseError databaseError) {
+                                                // Obsługa błędu pobierania danych
+                                                Log.e("TAG", "Failed to get recipient token", databaseError.toException());
+                                            }
+                                        });
 
                                         //show confirm notification
-                                        DatabaseReference userRef = database.getReference("users").child(creator);
                                         userRef.child("usere_name").addListenerForSingleValueEvent(new ValueEventListener() {
                                             @Override
                                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -829,6 +909,40 @@ private boolean isNorificationShow,isMarkersAded;
             }
         });
 
+    }
+
+
+    private void sendNotification(String userToken, String notificationTitle, String notificationMessage, String cpEventId) {
+        try {
+            JSONObject notification = new JSONObject();
+            notification.put("to", userToken);
+
+            JSONObject notificationBody = new JSONObject();
+            notificationBody.put("title", notificationTitle);
+            notificationBody.put("message", notificationMessage);
+            notificationBody.put("eventId", cpEventId);
+
+            notification.put("data", notificationBody);
+
+            String FCM_API = "https://fcm.googleapis.com/fcm/send";
+
+            JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, FCM_API, notification,
+                    response -> Log.d("TAG", "Notification sent successfully"),
+                    error -> Log.e("TAG", "Failed to send notification: " + error.getMessage())) {
+                @Override
+                public Map<String, String> getHeaders() {
+                    Map<String, String> headers = new HashMap<>();
+                    headers.put("Authorization", "key=AAAAAnlDQcE:APA91bHtPLsFGDPB2sbbmtFIjMdUSV5Q0mdhGUbC4IW62OAH0Y_1D40x3YTj3186e5dYqaRyOyQ_RV_V8y1QCeRCo18G-4hTvarTpCD9WdUB2ZGxIalA8LiV6XL-W8b_6ogYFc-DJZZf"); // Zastąp YOUR_SERVER_KEY swoim kluczem serwera
+                    headers.put("Content-Type", "application/json");
+                    return headers;
+                }
+            };
+
+            RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
+            requestQueue.add(jsonObjectRequest);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
 

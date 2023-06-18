@@ -23,6 +23,8 @@
     <color name="btnRegisterColorBackGround">#436B8A</color>
     <color name="my_fab_color">#4CAF50</color>
     <color name="blocked_color">#6B6B6B</color>
-
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="btnConfirmColor">#276F59</color>
+    <color name="recyclerViewItemColor">#135742</color>
 
 </resources>

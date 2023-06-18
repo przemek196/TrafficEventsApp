@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.google.android.gms.maps.MapView
+    <fragment
         android:id="@+id/maps"
         class="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
@@ -55,15 +55,21 @@
 
     <Button
         android:id="@+id/button_confirm_event"
-        android:layout_width="150dp"
+        android:layout_width="170dp"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
-        android:layout_marginTop="250dp"
         android:layout_marginLeft="20dp"
-        android:background="@drawable/button_background_event_conf"
+        android:layout_marginTop="250dp"
+        android:backgroundTint="@color/btnConfirmColor"
+        android:backgroundTintMode="src_in"
+        style="@style/RoundedButton"
+        android:textColor="@color/white"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:drawableEnd="@drawable/confirm_icon"
         android:text="Czy chcesz potwierdzić zdarzenie?"
         android:textSize="12sp"
-        android:visibility="visible" />
+        android:visibility="invisible" />
 
     <ImageButton
         android:id="@+id/btnDisplayDirection"
@@ -91,8 +97,11 @@
 
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginEnd="10dp">
 
 
         <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton

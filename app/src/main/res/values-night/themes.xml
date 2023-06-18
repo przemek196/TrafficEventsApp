@@ -1,5 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Theme.TrafficEventsApp" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="Theme.TrafficEventsApp" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/my_fab_color</item>
     </style>
 </resources>

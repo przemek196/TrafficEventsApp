@@ -11,10 +11,12 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.Image;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 
 
 import com.google.firebase.auth.FirebaseAuth;
@@ -26,6 +28,8 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
@@ -37,6 +41,7 @@ public class HistoryActivity extends AppCompatActivity implements OnItemClickLis
     List<EventModel> events_list;
     EventAdapter eventAdapter;
     Button btn_back;
+    ImageView imageViewBack;
     FirebaseDatabase database = FirebaseDatabase.getInstance("https://traffic-events-app-15a65-default-rtdb.europe-west1.firebasedatabase.app/");
     DatabaseReference markersRef = database.getReference("markers");
     DatabaseReference usersRef = database.getReference("users");
@@ -50,8 +55,10 @@ public class HistoryActivity extends AppCompatActivity implements OnItemClickLis
         setContentView(R.layout.activity_history);
 
         user_uid = mAuth.getCurrentUser().getUid();
-        btn_back = (Button) findViewById(R.id.btn_back_to_map);
-        btn_back.setOnClickListener(new View.OnClickListener() {
+
+        imageViewBack = (ImageView) findViewById(R.id.im_back);
+       // btn_back = (Button) findViewById(R.id.btn_back_to_map);
+        imageViewBack.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 finish();
@@ -89,17 +96,18 @@ public class HistoryActivity extends AppCompatActivity implements OnItemClickLis
 
                             switch (eventID) {
                                 case "speedcntrl":
-                                    events_list.add(new EventModel(eventID, R.drawable.ic_speed_hist, "Kontrola drogowa", dateString, "Potwierdzenia: " + String.valueOf(conf_count), latitude, longlatitude, snapshot.getKey()));
+                                    events_list.add(new EventModel(eventID, R.drawable.ic_baseline_speed_24, "Kontrola prędkości", "Data: "+dateString, "Potwierdzenia: " + String.valueOf(conf_count), latitude, longlatitude, snapshot.getKey(), milliseconds));
                                     break;
                                 case "accidnt":
-                                    events_list.add(new EventModel(eventID, R.drawable.ic_crash_hist, "Zdarzenie drogowe", dateString, "Potwierdzenia: " + String.valueOf(conf_count), latitude, longlatitude, snapshot.getKey()));
+                                    events_list.add(new EventModel(eventID, R.drawable.ic_baseline_car_crash_24, "Zdarzenie drogowe", "Data: "+dateString, "Potwierdzenia: " + String.valueOf(conf_count), latitude, longlatitude, snapshot.getKey(), milliseconds));
                                     break;
                                 case "polivoit":
-                                    events_list.add(new EventModel(eventID, R.drawable.ic_car_hist, "Radiowóz policyjny", dateString, "Potwierdzenia: " + String.valueOf(conf_count), latitude, longlatitude, snapshot.getKey()));
+                                    events_list.add(new EventModel(eventID, R.drawable.ic_baseline_local_police_24, "Radiowóz policyjny", "Data: "+dateString, "Potwierdzenia: " + String.valueOf(conf_count), latitude, longlatitude, snapshot.getKey(), milliseconds));
                                     break;
                                 default:
                                     break;
                             }
+                            Collections.sort(events_list, new EventModelComparator());
                             eventAdapter.notifyDataSetChanged();
                         }
 
@@ -149,4 +157,12 @@ public class HistoryActivity extends AppCompatActivity implements OnItemClickLis
         events_list.remove(position);
         eventAdapter.notifyItemRemoved(position);
     }
+
+    public class EventModelComparator implements Comparator<EventModel> {
+        @Override
+        public int compare(EventModel o1, EventModel o2) {
+            return Long.compare(o2.getEventDateMilis(), o1.getEventDateMilis());
+        }
+    }
+
 }

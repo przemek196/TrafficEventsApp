@@ -45,4 +45,5 @@
     <string name="incident_history">Historia incydentów</string>
     <string name="new_event_adaed">Dodano nowe zdarzenie.</string>
     <string name="czy_chcesz_potwierdzi_zdarzenie">Czy chcesz potwierdzić zdarzenie?</string>
+    <string name="last_login_expired">Wysątpił problem podczas usunięcia konta. Wyloguj się i spróbuj ponownie.</string>
 </resources>

@@ -35,6 +35,15 @@
             android:layout_height="match_parent" />
 
         <TextView
+            android:id="@+id/reaming_time"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:layout_gravity="center_vertical"
+            android:text="Godzina: 11:29"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
             android:id="@+id/user_desc"
             android:textColor="#FFFFFF"
             android:textSize="16sp"

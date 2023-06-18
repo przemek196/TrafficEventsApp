@@ -3,18 +3,21 @@ package com.example.trafficeventsapp;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 
+import java.util.Date;
+
 public class EventModel {
     private String event_name;
     private String hist_key;
     private int imageView;
     private String eventType;
     private String eventDate;
+    private long eventDateMilis;
     private String eventConfirmationCount;
     private double latitude;
     private double longlatitude;
 
 
-    public EventModel(String event_name,int imageView, String eventType, String eventDate, String eventConfirmationCount, double latitude, double longlatitude,String hist_key) {
+    public EventModel(String event_name,int imageView, String eventType, String eventDate, String eventConfirmationCount, double latitude, double longlatitude,String hist_key,long eventDateMilis) {
         this.event_name = event_name;
         this.imageView = imageView;
         this.eventType = eventType;
@@ -23,6 +26,15 @@ public class EventModel {
         this.latitude = latitude;
         this.longlatitude = longlatitude;
         this.hist_key = hist_key;
+        this.eventDateMilis=eventDateMilis;
+    }
+
+    public long getEventDateMilis() {
+        return eventDateMilis;
+    }
+
+    public void setEventDateMilis(long eventDateMilis) {
+        this.eventDateMilis = eventDateMilis;
     }
 
     public String getEvent_name() {

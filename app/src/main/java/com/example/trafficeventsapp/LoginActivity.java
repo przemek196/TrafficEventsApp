@@ -27,10 +27,17 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingService;
+
+
+
+
+
 public class LoginActivity extends AppCompatActivity {
 
     private FirebaseDatabase database = FirebaseDatabase.getInstance();
-    private DatabaseReference myRef = database.getReference();
+    private DatabaseReference myRef = FirebaseDatabase.getInstance("https://traffic-events-app-15a65-default-rtdb.europe-west1.firebasedatabase.app/").getReference();
     private AlertDialog.Builder dialogBuilder;
     private AlertDialog dialog;
     private FirebaseAuth mAuth = FirebaseAuth.getInstance();
@@ -83,8 +90,31 @@ public class LoginActivity extends AppCompatActivity {
                         if (mAuth.getCurrentUser().isEmailVerified()) {
                             Toast.makeText(getApplicationContext(), getResources().getString(R.string.loginSucccesful), Toast.LENGTH_LONG).show();
                             progressbar.setVisibility(View.GONE);
-                            Intent intent = new Intent(LoginActivity.this, MapActivity.class);
-                            startActivity(intent);
+
+                            //get FCM token
+                            FirebaseMessaging.getInstance().getToken().addOnCompleteListener(new OnCompleteListener<String>() {
+                                @Override
+                                public void onComplete(@NonNull Task<String> task) {
+                                    if (task.isSuccessful()) {
+                                        String token = task.getResult();
+                                        FirebaseUser currentUser = mAuth.getCurrentUser();
+                                        if (currentUser != null) {
+                                            String userId = currentUser.getUid();
+                                            DatabaseReference userRef = myRef.child("users").child(userId);
+                                            userRef.child("registrationToken").setValue(token);
+                                        }
+                                    } else {
+                                        Log.e("TAG", "Failed to get FCM token: " + task.getException().getMessage());
+                                    }
+
+                                    // Continue with your code
+                                    Intent intent = new Intent(LoginActivity.this, MapActivity.class);
+                                    startActivity(intent);
+                                }
+                            });
+
+
+
                         } else {
                             emailVerification = editTextEmail.getText().toString();
                             firebaseUser = mAuth.getCurrentUser();
